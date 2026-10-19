@@ -1,0 +1,13 @@
+{
+  "name": "Non-Toxic Living",
+  "short_name": "Non-Toxic",
+  "description": "Clean, seed-oil-free brands, recipes, local farms and natural-fiber clothing.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f2e9",
+  "theme_color": "#2f5d46",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

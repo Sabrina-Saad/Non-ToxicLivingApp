@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Non-Toxic Living</title>
+  <meta name="description" content="Find non-toxic, seed-oil-free brands, clean recipes, local farms and 100% natural-fiber clothing. Like Yuka - but it tells you what to buy instead.">
+  <meta name="theme-color" content="#2f5d46">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="brand" data-go="search" aria-label="Home">
+      <span class="brand-mark" aria-hidden="true">🌿</span>
+      <span class="brand-name">Non-Toxic <em>Living</em></span>
+    </button>
+    <div class="top-actions">
+      <button class="icon-btn" id="openList" aria-label="Shopping list">🛒 <span id="listCount" class="pill-count">0</span></button>
+      <button class="icon-btn" id="openSettings" aria-label="Settings">⚙️</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ SEARCH ============ -->
+    <section class="view active" id="view-search" aria-label="Search">
+      <div class="hero">
+        <h1>What are you <span class="hl">craving</span> or shopping for?</h1>
+        <p class="sub">Search any food, product, or fabric - we'll show you clean, seed-oil-free brands, where to buy them, and recipes to make it yourself.</p>
+        <form id="searchForm" class="searchbar" role="search">
+          <span aria-hidden="true">🔎</span>
+          <input id="q" type="search" autocomplete="off" placeholder="Try “mayonnaise”, “cookies”, “rice krispies”, “beef”, “wool blanket”…" aria-label="Search">
+          <button type="submit" class="btn primary">Search</button>
+        </form>
+        <div class="chips" id="quickChips"></div>
+      </div>
+      <div id="results"></div>
+    </section>
+
+    <!-- ============ RECIPES ============ -->
+    <section class="view" id="view-recipes" aria-label="Recipes">
+      <div class="page-head">
+        <h2>Clean Recipes</h2>
+        <p class="sub">Exact ingredients, the cleanest brands to buy, nutrition per serving, and swaps for every diet.</p>
+        <input id="recipeFilter" class="filter" type="search" placeholder="Filter recipes… (cookies, tacos, protein)">
+      </div>
+      <div id="recipeGrid" class="grid"></div>
+    </section>
+
+    <!-- ============ LABEL CHECK ============ -->
+    <section class="view" id="view-scan" aria-label="Label check">
+      <div class="page-head">
+        <h2>Label Check</h2>
+        <p class="sub">Scan a barcode or paste an ingredient list. We flag seed oils, dyes, and additives - and tell you how bad each one is.</p>
+      </div>
+      <div class="card scan-card">
+        <h3>📷 Scan or type a barcode</h3>
+        <div class="row">
+          <input id="barcode" inputmode="numeric" placeholder="e.g. 0041000001826" aria-label="Barcode">
+          <button class="btn primary" id="lookupBarcode">Look up</button>
+          <button class="btn" id="startScan">Scan</button>
+        </div>
+        <div id="scanner" class="scanner" hidden>
+          <video id="scanVideo" playsinline muted></video>
+          <button class="btn small" id="stopScan">Stop camera</button>
+        </div>
+        <p class="fine">Product data from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, the free, open food database.</p>
+      </div>
+      <div class="card scan-card">
+        <h3>📝 Paste an ingredient list</h3>
+        <textarea id="ingredientsInput" rows="5" placeholder="Paste ingredients from the back of the package…"></textarea>
+        <div class="row">
+          <button class="btn primary" id="analyzeBtn">Check ingredients</button>
+          <button class="btn" id="sampleBtn">Try an example</button>
+        </div>
+      </div>
+      <div id="scanResult"></div>
+      <div class="card">
+        <h3>🫒 The seed oil scale - from best to worst</h3>
+        <ol class="oil-scale">
+          <li class="g-best"><b>Best:</b> beef tallow, ghee, butter, lard, coconut oil, extra-virgin olive oil, avocado oil</li>
+          <li class="g-ok"><b>Okay in a pinch:</b> high-oleic sunflower or safflower oil (more stable, less omega-6), palm oil</li>
+          <li class="g-poor"><b>Avoid:</b> canola/rapeseed, sunflower, safflower (regular), rice bran, grapeseed, sesame (flavoring amounts are minor)</li>
+          <li class="g-bad"><b>Worst:</b> soybean, corn, cottonseed, "vegetable oil", and anything hydrogenated or interesterified</li>
+        </ol>
+        <p class="fine">Tip: ingredients are listed by weight. If a seed oil is the last ingredient, it's a small amount - that's the "least bad" choice when nothing clean exists.</p>
+      </div>
+    </section>
+
+    <!-- ============ SHOP LOCAL ============ -->
+    <section class="view" id="view-local" aria-label="Shop local">
+      <div class="page-head">
+        <h2>Shop Local · Real Food, Real Farmers</h2>
+        <p class="sub">Find farmers markets, farms, butchers and health food stores near you.</p>
+      </div>
+      <div class="card">
+        <form id="locForm" class="row">
+          <input id="locInput" placeholder="ZIP code or city, state" aria-label="Location">
+          <button class="btn primary" type="submit">Find near me</button>
+          <button class="btn" type="button" id="useGeo">📍 Use my location</button>
+        </form>
+        <label class="radius">Within <select id="radius"><option value="16000">10 miles</option><option value="40000" selected>25 miles</option><option value="80000">50 miles</option></select></label>
+      </div>
+      <div id="localResults"></div>
+      <div class="card">
+        <h3>🔎 Quick searches near you</h3>
+        <div class="chips" id="localChips"></div>
+      </div>
+      <div class="card">
+        <h3>📚 Trusted farm directories</h3>
+        <ul class="links">
+          <li><a href="https://www.usdalocalfoodportal.com/" target="_blank" rel="noopener">USDA Local Food Directories</a> - farmers markets, CSAs, on-farm stores</li>
+          <li><a href="https://www.localharvest.org/" target="_blank" rel="noopener">LocalHarvest</a> - farms, CSAs, markets across the US</li>
+          <li><a href="https://www.eatwild.com/" target="_blank" rel="noopener">Eatwild</a> - grass-fed beef, lamb, dairy & pastured poultry farms by state</li>
+          <li><a href="https://www.americangrassfed.org/" target="_blank" rel="noopener">American Grassfed Association</a> - certified farms (animals must be born & raised in the US)</li>
+          <li><a href="https://www.realmilk.com/real-milk-finder/" target="_blank" rel="noopener">Real Milk Finder</a> - raw & grass-fed dairy farms (check your state's laws)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🥩 How to buy real beef from a farmer</h3>
+        <ol class="steps">
+          <li>Ask: <b>"Is it 100% grass-fed AND grass-finished?"</b> Many "grass-fed" cattle are grain-finished.</li>
+          <li>Ask: <b>"Were the animals born and raised on your farm or in the US?"</b></li>
+          <li>Ask: <b>"Any growth hormones, routine antibiotics, or grain feed?"</b> A good farmer happily explains their practices.</li>
+          <li>Buy in bulk: a <b>quarter cow</b> (~100 lbs of meat) fits in a chest freezer and is often cheaper per pound than grocery-store grass-fed.</li>
+          <li>In stores, look for: <b>"Product of USA"</b> (since Jan 1, 2026 it must mean born, raised, slaughtered & processed in the US), <b>American Grassfed</b> certification, or the farm name on the package.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ CLOTHING ============ -->
+    <section class="view" id="view-clothing" aria-label="Clothing and home">
+      <div class="page-head">
+        <h2>Clothing & Home · No Polyester</h2>
+        <p class="sub">100% cotton, wool, linen and silk - clothes, sheets, blankets, towels and mattresses.</p>
+        <input id="clothingFilter" class="filter" type="search" placeholder="Search… (blanket, jeans, underwear, sheets)">
+      </div>
+      <div id="clothingList"></div>
+      <div class="card">
+        <h3>🧵 Fiber cheat sheet</h3>
+        <div id="fiberList" class="fibers"></div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="view" id="view-about" aria-label="About us">
+      <article class="about">
+        <div class="about-hero">
+          <p class="kicker">About Us</p>
+          <h2>America is poisoning its people.<br><span class="hl">We're making it easier to opt out.</span></h2>
+          <p class="lede">Ever notice how people come back from Europe saying they ate bread, pasta, cheese and gelato every single day - and still <b>lost weight</b>? It's not magic. Part of it is walking more and eating smaller portions. But a big part of it is <b>what's actually in the food</b>.</p>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat"><b>40.3%</b><span>of US adults have obesity <a href="#src-cdc-obesity" class="cite">[1]</a></span></div>
+          <div class="stat"><b>~1 in 6</b><span>EU adults have obesity <a href="#src-eurostat" class="cite">[2]</a></span></div>
+          <div class="stat"><b>55%</b><span>of calories Americans eat are ultra-processed <a href="#src-cdc-upf" class="cite">[3]</a></span></div>
+        </div>
+
+        <section>
+          <h3>Same brand. Different recipe.</h3>
+          <p>American companies already know how to make cleaner food - they do it for Europe. In the EU, foods with Red 40, Yellow 5 or Yellow 6 must carry a warning label: <q>may have an adverse effect on activity and attention in children</q> <a href="#src-eu-1333" class="cite">[4]</a>. Rather than print that warning, many brands simply reformulated for Europe - using paprika, beetroot, carrot and other plant colors - while keeping the petroleum dyes in the US versions.</p>
+          <p>Compare McDonald's fries: in the UK they're potatoes, oil, dextrose and salt. The US version adds "natural beef flavor" (with hydrolyzed wheat and milk), sodium acid pyrophosphate, and fryer oil containing TBHQ and dimethylpolysiloxane (an anti-foaming silicone).</p>
+          <div class="table-wrap">
+            <table class="compare">
+              <thead><tr><th>Ingredient / practice</th><th>🇺🇸 United States</th><th>🇪🇺 European Union</th></tr></thead>
+              <tbody>
+                <tr><td><b>Titanium dioxide</b> (whitener in candy, frosting)</td><td class="bad">Allowed</td><td class="good">Banned since 2022 - EFSA couldn't rule out DNA damage <a href="#src-efsa-tio2" class="cite">[5]</a></td></tr>
+                <tr><td><b>Potassium bromate</b> (bread flour)</td><td class="bad">Allowed (California ban starts 2027 <a href="#src-ab418" class="cite">[6]</a>)</td><td class="good">Banned - IARC "possible carcinogen"</td></tr>
+                <tr><td><b>Azodicarbonamide</b> ("yoga mat chemical" in bread)</td><td class="bad">Allowed</td><td class="good">Not permitted in food</td></tr>
+                <tr><td><b>Red 40, Yellow 5, Yellow 6</b></td><td class="bad">Allowed, no warning</td><td class="good">Mandatory child-hyperactivity warning <a href="#src-eu-1333" class="cite">[4]</a></td></tr>
+                <tr><td><b>Red 3</b> (causes thyroid tumors in rats)</td><td class="bad">Banned from cosmetics in 1990 - but allowed in food until Jan 2025 (phase-out by 2027) <a href="#src-fda-red3" class="cite">[7]</a></td><td class="good">Restricted for decades</td></tr>
+                <tr><td><b>Brominated vegetable oil</b> (sodas)</td><td class="bad">Allowed until 2024 <a href="#src-fda-bvo" class="cite">[8]</a></td><td class="good">Never approved</td></tr>
+                <tr><td><b>rBST growth hormone</b> in dairy cows</td><td class="bad">Allowed</td><td class="good">Banned since 2000</td></tr>
+                <tr><td><b>Ractopamine</b> (growth drug in pork & beef)</td><td class="bad">Allowed</td><td class="good">Banned (also in China & Russia)</td></tr>
+                <tr><td><b>Chemical washes on chicken</b> (chlorine, peracetic acid)</td><td class="bad">Standard practice</td><td class="good">Banned since 1997</td></tr>
+                <tr><td><b>Atrazine</b> (weed killer, a known hormone disruptor)</td><td class="bad">2nd most-used herbicide</td><td class="good">Banned since 2004</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section>
+          <h3>They literally tell you on the label.</h3>
+          <div class="callout">
+            <p class="warn-label">⚠️ WARNING: This product can expose you to chemicals including acrylamide, which is known to the State of California to cause cancer.</p>
+            <p>That's a real <b>California Prop 65</b> warning - you'll see it on coffee, chips, fries and cookware <a href="#src-p65" class="cite">[9]</a>. The chemicals are legal to sell. The state just requires them to tell you.</p>
+          </div>
+          <div class="callout">
+            <p class="warn-label">⚠️ Keep out of reach of children under 6 years of age. If more than used for brushing is accidentally swallowed, get medical help or contact a Poison Control Center right away.</p>
+            <p>That's the <b>FDA-required warning on fluoride toothpaste</b> <a href="#src-cfr355" class="cite">[10]</a>. Read the back of your tube.</p>
+          </div>
+        </section>
+
+        <section>
+          <h3>Fluoride & your pineal gland</h3>
+          <p>Your <b>pineal gland</b> is a tiny gland in the center of your brain that makes <b>melatonin</b> - the hormone that runs your sleep cycle. In 2001, researcher Jennifer Luke found that fluoride <b>accumulates in the pineal gland</b> - at higher concentrations than in bone - as it calcifies with age <a href="#src-luke" class="cite">[11]</a>. Her earlier animal research found fluoride lowered melatonin output in gerbils.</p>
+          <p>In 2024 the US government's own <b>National Toxicology Program</b> concluded, with moderate confidence, that fluoride exposure above 1.5 mg/L is associated with <b>lower IQ in children</b> <a href="#src-ntp" class="cite">[12]</a>. That same year a federal judge ordered the EPA to take regulatory action on fluoride in drinking water. In 2025, <b>Utah and Florida</b> became the first states to ban adding fluoride to public water.</p>
+          <p class="honest">📌 Being straight with you: US water is fluoridated at 0.7 mg/L, and the NTP said there wasn't enough data to know whether that lower level affects IQ. The pineal research shows fluoride <i>builds up</i> there - whether that harms sleep or health in humans hasn't been proven yet. We think "not proven safe" is reason enough to choose a <a href="#" data-search="toothpaste">fluoride-free toothpaste</a> and a <a href="#" data-search="water filter">reverse-osmosis filter</a>.</p>
+        </section>
+
+        <section>
+          <h3>Red 40 and our kids</h3>
+          <p>In 2007, a randomized, double-blind study published in <i>The Lancet</i> (the "Southampton study") gave children drinks containing common food dyes plus sodium benzoate. Both 3-year-olds and 8-9-year-olds became <b>measurably more hyperactive</b> <a href="#src-mccann" class="cite">[13]</a>. That study is why Europe added the warning label.</p>
+          <p>In 2021, California's Office of Environmental Health Hazard Assessment reviewed the evidence and concluded synthetic food dyes <b>can cause or worsen neurobehavioral problems - like inattention and hyperactivity - in some children</b> <a href="#src-oehha" class="cite">[14]</a>. California has since banned Red 40, Yellow 5, Yellow 6 and other dyes from school food <a href="#src-ab2316" class="cite">[15]</a>, and in 2025 the FDA announced a plan to phase petroleum-based dyes out of the US food supply - after decades of parents being told they were "safe".</p>
+        </section>
+
+        <section>
+          <h3>Testosterone, fertility & the chemicals around us</h3>
+          <p>American men have less testosterone than men the same age did a generation ago - a large study found levels falling by roughly 1% a year, independent of age <a href="#src-travison" class="cite">[16]</a>. Global sperm counts have dropped by more than 50% since the 1970s <a href="#src-levine" class="cite">[17]</a>.</p>
+          <p>The best-studied culprits are <b>endocrine disruptors</b> - chemicals that mimic or block hormones - like phthalates and BPA in plastics, synthetic fragrance and food packaging. That's why this app cares about what's in your food <i>and</i> what touches your skin.</p>
+          <p class="honest">📌 Being straight with you: we haven't found a human study proving Red 40 itself lowers testosterone. Red 40's documented harm is to kids' behavior. Plastics and hormone-disrupting chemicals are the bigger, better-proven threat to hormones - and polyester <i>is</i> plastic.</p>
+        </section>
+
+        <section>
+          <h3>Polyester is plastic. You're wearing it.</h3>
+          <p>In the early 1990s, Egyptian urologist Ahmed Shafik had men wear polyester slings against the scrotum. Within months, <b>sperm counts dropped to zero</b> - he literally tested it as a male contraceptive. After they stopped wearing polyester, <b>sperm production returned to normal</b> <a href="#src-shafik" class="cite">[18]</a>. His studies in dogs found the same effect, which he linked to the electrostatic charge polyester creates against the skin.</p>
+          <p>Since then, scientists have found microplastics in human <b>placentas</b> <a href="#src-ragusa" class="cite">[19]</a> and in <b>every human testicle sample tested</b> in a 2024 study <a href="#src-hu" class="cite">[20]</a>. Polyester clothing sheds microfibers every time you wear and wash it, and in 2022 the Center for Environmental Health found BPA in polyester-spandex socks from major brands. Documentaries have pushed this into the mainstream - couples swapping polyester bedding and underwear for natural fibers - and the research behind it goes back decades.</p>
+          <p class="honest">📌 Being straight with you: Shafik's studies were small and haven't been repeated at scale. But natural fibers have no downside - so why take the risk? See the <a href="#" data-go="clothing">Clothing tab</a>.</p>
+        </section>
+
+        <section>
+          <h3>It's not just your waistline</h3>
+          <p>A 2024 umbrella review in the <i>BMJ</i>, pooling 45 analyses covering nearly 10 million people, found ultra-processed food is linked to higher risk of heart disease death, type 2 diabetes, <b>anxiety and depression</b> <a href="#src-lane" class="cite">[21]</a>. Europe has its own problems - but its people eat far less ultra-processed food, and it shows.</p>
+        </section>
+
+        <section class="founder">
+          <h3>Why I built this</h3>
+          <p>Honestly? It makes me sad. It makes me sad that families in Europe are protected from ingredients that we're fed every day without warning. That our kids are eating dyes another country puts a warning label on. That "Product of USA" beef could come from the other side of the world. That the "soft" blanket you wrap your baby in is plastic.</p>
+          <p>Living non-toxic in America is getting harder - the cleanest option is usually hidden, more expensive, or not labeled at all. <b>I made this app to make it easier.</b> Search what you're craving, and get real brands, real recipes, real farms, and real fabrics. Eat REAL food from REAL farmers.</p>
+          <p class="sign">- The Non-Toxic Living team 🌿</p>
+        </section>
+
+        <section class="good-news">
+          <h3>The good news: it's working.</h3>
+          <p>Because people started asking questions, things are changing: California passed the first state food-additive ban in 2023, the FDA banned BVO (2024) and Red 3 (2025), major companies like Kraft Heinz pledged to remove synthetic dyes, and "Product of USA" finally means what it says. Every time you buy the clean option, you vote for more of it.</p>
+        </section>
+
+        <section class="sources" id="sources">
+          <h3>Sources</h3>
+          <ol>
+            <li id="src-cdc-obesity"><a href="https://www.cdc.gov/nchs/products/databriefs/db508.htm" target="_blank" rel="noopener">CDC NCHS Data Brief 508 - Obesity prevalence in adults, Aug 2021-Aug 2023</a></li>
+            <li id="src-eurostat"><a href="https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Overweight_and_obesity_-_BMI_statistics" target="_blank" rel="noopener">Eurostat - Overweight and obesity, BMI statistics (EHIS 2019)</a></li>
+            <li id="src-cdc-upf"><a href="https://www.cdc.gov/nchs/products/databriefs/db536.htm" target="_blank" rel="noopener">CDC NCHS Data Brief 536 - Ultra-processed food consumption, Aug 2021-Aug 2023</a></li>
+            <li id="src-eu-1333"><a href="https://eur-lex.europa.eu/eli/reg/2008/1333/oj" target="_blank" rel="noopener">Regulation (EC) No 1333/2008 on food additives, Annex V (dye warning label)</a></li>
+            <li id="src-efsa-tio2"><a href="https://www.efsa.europa.eu/en/news/titanium-dioxide-e171-no-longer-considered-safe-when-used-food-additive" target="_blank" rel="noopener">EFSA (2021) - Titanium dioxide no longer considered safe as a food additive</a></li>
+            <li id="src-ab418"><a href="https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB418" target="_blank" rel="noopener">California AB 418 - California Food Safety Act (2023)</a></li>
+            <li id="src-fda-red3"><a href="https://www.fda.gov/food/food-additives-petitions/fdc-red-no-3" target="_blank" rel="noopener">FDA - FD&C Red No. 3 (revocation of authorization, January 2025)</a></li>
+            <li id="src-fda-bvo"><a href="https://www.fda.gov/food/food-additives-petitions/brominated-vegetable-oil-bvo" target="_blank" rel="noopener">FDA - Brominated Vegetable Oil (revoked 2024)</a></li>
+            <li id="src-p65"><a href="https://www.p65warnings.ca.gov/" target="_blank" rel="noopener">California OEHHA - Proposition 65 warnings</a></li>
+            <li id="src-cfr355"><a href="https://www.ecfr.gov/current/title-21/chapter-I/subchapter-D/part-355" target="_blank" rel="noopener">21 CFR Part 355 - Anticaries drug products (required toothpaste warning, §355.50)</a></li>
+            <li id="src-luke"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Luke+J+Fluoride+deposition+in+the+aged+human+pineal+gland" target="_blank" rel="noopener">Luke J. "Fluoride deposition in the aged human pineal gland." Caries Research, 2001</a></li>
+            <li id="src-ntp"><a href="https://ntp.niehs.nih.gov/go/fluoride" target="_blank" rel="noopener">National Toxicology Program Monograph 08 (2024) - Fluoride exposure and neurodevelopment</a></li>
+            <li id="src-mccann"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=McCann+2007+Food+additives+and+hyperactive+behaviour+Lancet" target="_blank" rel="noopener">McCann D, et al. "Food additives and hyperactive behaviour in 3-year-old and 8/9-year-old children." The Lancet, 2007</a></li>
+            <li id="src-oehha"><a href="https://oehha.ca.gov/risk-assessment/report/health-effects-assessment-potential-neurobehavioral-effects-synthetic-food" target="_blank" rel="noopener">California OEHHA (2021) - Health effects assessment: neurobehavioral effects of synthetic food dyes</a></li>
+            <li id="src-ab2316"><a href="https://leginfo.legislature.ca.gov/faces/billNavClient.xhtml?bill_id=202320240AB2316" target="_blank" rel="noopener">California AB 2316 - California School Food Safety Act (2024)</a></li>
+            <li id="src-travison"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Travison+2007+population-level+decline+in+serum+testosterone" target="_blank" rel="noopener">Travison TG, et al. "A population-level decline in serum testosterone levels in American men." J Clin Endocrinol Metab, 2007</a></li>
+            <li id="src-levine"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Levine+2023+Temporal+trends+in+sperm+count+systematic+review+meta-regression" target="_blank" rel="noopener">Levine H, et al. "Temporal trends in sperm count: a systematic review and meta-regression analysis of samples collected globally." Human Reproduction Update, 2023</a></li>
+            <li id="src-shafik"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Shafik+polyester+azoospermia+contraceptive" target="_blank" rel="noopener">Shafik A. "Contraceptive efficacy of polyester-induced azoospermia in normal men." Contraception, 1992 (and related studies)</a></li>
+            <li id="src-ragusa"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Ragusa+2021+Plasticenta+microplastics+human+placenta" target="_blank" rel="noopener">Ragusa A, et al. "Plasticenta: First evidence of microplastics in human placenta." Environment International, 2021</a></li>
+            <li id="src-hu"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Hu+2024+microplastics+canine+and+human+testis+Toxicological+Sciences" target="_blank" rel="noopener">Hu CJ, et al. "Microplastic presence in dog and human testis." Toxicological Sciences, 2024</a></li>
+            <li id="src-lane"><a href="https://pubmed.ncbi.nlm.nih.gov/?term=Lane+2024+ultra-processed+food+exposure+adverse+health+outcomes+umbrella+review+BMJ" target="_blank" rel="noopener">Lane MM, et al. "Ultra-processed food exposure and adverse health outcomes: umbrella review." BMJ, 2024</a></li>
+            <li id="src-usda-usa"><a href="https://www.foodprocessing.com/food-safety/regulatory-compliance/news/55340747/new-usda-rules-in-effect-jan-1-for-made-in-usa-labeling" target="_blank" rel="noopener">USDA FSIS "Product of USA" rule, in effect January 1, 2026</a></li>
+          </ol>
+          <p class="fine">This app is for education, not medical advice. Brand formulas change - always read the label. We're not paid by any brand listed. Where the science is early or debated, we say so.</p>
+        </section>
+      </article>
+    </section>
+
+    <!-- ============ SHOPPING LIST ============ -->
+    <section class="view" id="view-list" aria-label="Shopping list">
+      <div class="page-head">
+        <h2>🛒 Shopping List</h2>
+        <p class="sub">Add ingredients from any recipe or brand. Saved on this device.</p>
+      </div>
+      <div id="listBody"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button data-go="search" class="active"><span>🔎</span>Search</button>
+    <button data-go="recipes"><span>🍳</span>Recipes</button>
+    <button data-go="scan"><span>🏷️</span>Label Check</button>
+    <button data-go="local"><span>🧑‍🌾</span>Local</button>
+    <button data-go="clothing"><span>🧺</span>Clothing</button>
+    <button data-go="about"><span>💚</span>About</button>
+  </nav>
+
+  <!-- Recipe / AI detail sheet -->
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel" role="dialog" aria-modal="true">
+      <button class="sheet-close" data-close aria-label="Close">✕</button>
+      <div id="sheetBody"></div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="sheet" id="settings" hidden>
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel small" role="dialog" aria-modal="true">
+      <button class="sheet-close" data-close aria-label="Close">✕</button>
+      <h2>Settings</h2>
+      <h3>✨ AI for any food (optional)</h3>
+      <p class="sub">The app has a built-in guide to hundreds of brands and 20 recipes. To get a clean recipe or brand list for <i>anything</i> else, add your own Anthropic API key. It's stored only on this device and sent only to Anthropic.</p>
+      <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+      <div class="row">
+        <button class="btn primary" id="saveKey">Save key</button>
+        <button class="btn" id="clearKey">Remove</button>
+      </div>
+      <p class="fine">Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>. Usage is billed to your Anthropic account.</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data/products.js"></script>
+  <script src="js/data/recipes.js"></script>
+  <script src="js/data/clothing.js"></script>
+  <script src="js/data/additives.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
