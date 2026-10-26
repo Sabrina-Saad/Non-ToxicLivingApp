@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preload" href="fonts/instrument-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/figtree-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=5">
 </head>
 <body>
   <header class="topbar">
@@ -34,12 +34,15 @@
         <p class="kicker">The clean shopping guide</p>
         <h1>What are you craving or shopping for?</h1>
         <p class="sub">Clean, seed-oil-free brands, where to buy them, and recipes to make it yourself.</p>
+        <div class="search-row">
+        <button type="button" class="back-btn" id="searchBack" aria-label="Back to home"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
         <form id="searchForm" class="searchbar" role="search">
           <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
           <label for="q" class="visually-hidden">Search foods, products or fabrics</label>
           <input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Mayonnaise, cookies, wool blanket">
           <button type="submit" class="btn primary">Search</button>
         </form>
+        </div>
         <div class="diet" data-diet-bar></div>
         <div class="chips" id="quickChips"></div>
       </div>
@@ -370,11 +373,11 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/data/products.js"></script>
-  <script src="js/data/recipes.js"></script>
-  <script src="js/data/clothing.js"></script>
-  <script src="js/data/additives.js"></script>
-  <script src="js/data/diets.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/data/products.js?v=5"></script>
+  <script src="js/data/recipes.js?v=5"></script>
+  <script src="js/data/clothing.js?v=5"></script>
+  <script src="js/data/additives.js?v=5"></script>
+  <script src="js/data/diets.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

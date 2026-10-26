@@ -198,7 +198,6 @@
     `<div class="buy">${links.map((l) => l.url.startsWith("#")
       ? `<a href="#" data-go="${esc(l.url.slice(1))}">${esc(l.label)}</a>`
       : `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join("")}</div>`;
-  const addBtn = (item) => `<button class="add-btn" data-add='${esc(JSON.stringify(item))}' aria-label="Add to shopping list">${icon("plus", 14)}List</button>`;
 
   /* ---------------- scores (Yuka-style) ---------------- */
   function grade(score) {
@@ -261,6 +260,7 @@
   function renderResults(query) {
     const out = $("#results");
     $("#homeExtras").hidden = !!query.trim();
+    document.body.classList.toggle("searching", !!query.trim());
     if (!query.trim()) { out.innerHTML = ""; return; }
     const diets = activeDiets();
 
@@ -283,16 +283,18 @@
     const nq = norm(query);
     const wantsRecipe = /\b(craving|crave|recipe|make|bake|cook|homemade)\b/.test(nq);
     const sections = [];
-    if (prods.length) sections.push({ s: prods[0].s + (wantsRecipe ? 0 : 5), html: `<h2 class="sec-title">Clean brands to buy</h2>${prods.map((x) => productCard(x.it)).join("")}` });
+    if (prods.length) sections.push({ s: prods[0].s + (wantsRecipe ? 0 : 5), products: true, html: prods.map((x) => productCard(x.it)).join('<hr class="divider">') });
     if (recs.length || hiddenRecipes) sections.push({
       s: (recs[0] ? recs[0].s : 0) + (wantsRecipe ? 50 : 0),
-      html: `<h2 class="sec-title">Make it yourself</h2>${recs.length ? `<div class="grid">${recs.map((x) => recipeCard(x.it)).join("")}</div>` : ""}
+      html: `<div class="subhead"><h2 class="sec-title" style="margin:0">Make it yourself</h2></div>${recs.length ? `<div class="grid">${recs.map((x) => recipeCard(x.it)).join("")}</div>` : ""}
         ${hiddenRecipes ? `<p class="hidden-note">${hiddenRecipes} recipe${hiddenRecipes > 1 ? "s" : ""} hidden because ${hiddenRecipes > 1 ? "they don't" : "it doesn't"} fit ${esc(dietLabels(diets))}.</p>` : ""}`
     });
     if (cloth.length) sections.push({ s: cloth[0].s, html: `<h2 class="sec-title">Natural-fiber picks</h2>${cloth.map((x) => clothingCard(x.it)).join("")}` });
     sections.sort((a, b) => b.s - a.s);
 
-    out.innerHTML = (sections.length ? sections.map((s) => s.html).join("") : noResults(query)) + aiBox(query, !sections.length);
+    // The first section leads the page with a big title, like its own screen.
+    if (sections[0] && sections[0].products) sections[0].html = sections[0].html.replace('<article class="product">', '<article class="product lead">').replace(/<h2 class="product-title">(.*?)<\/h2>/, '<h1 class="product-title">$1</h1>');
+    out.innerHTML = (sections.length ? sections.map((s) => s.html).join('<hr class="divider">') : noResults(query)) + aiBox(query, !sections.length);
     bindAiBox(out, query);
     store.set("lastSearch", query);
   }
@@ -316,80 +318,89 @@
   }
 
   /* ---------------- product cards ---------------- */
-  function productCard(p, { ai = false } = {}) {
+  // One brand pick, laid out like the design: score, brand, product, why; oil + "Add to list";
+  // store links tucked under "Where to buy".
+  function pickCard({ k, fit }, category) {
+    const g = grade(k.score ?? 70);
+    let action, where = "";
+    if (k.recipe) action = `<a href="#" class="btn small" data-recipe="${esc(k.recipe)}">View recipe</a>`;
+    else if (k.local) action = `<a class="btn small" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${enc(k.p + " near me")}">Find near me</a>`;
+    else {
+      action = `<button class="btn small" data-add='${esc(JSON.stringify({ name: `${k.b} - ${k.p}`, note: category.name }))}'>Add to list</button>`;
+      if (k.b !== "Any brand" && k.b !== "Homemade") where = `<details class="where"><summary>Where to buy</summary>${linkRow([...(k.site ? [{ label: "Brand site", url: k.site }] : []), ...buyLinks(k.b, k.p)])}</details>`;
+    }
+    const dietTags = fit ? fit.per.map((x) =>
+      x.s === "yes" ? `<span class="tag fit">${icon("check", 12)}${esc(x.d.label)}</span>`
+      : x.s === "no" ? `<span class="tag nofit">Not ${esc(x.d.label.toLowerCase())}</span>` : "").join("") : "";
+    return `<li class="pick${fit && fit.status === "no" ? " dim" : ""}">
+      <div class="pick-top">
+        <div class="score ${g.cls}" title="${g.label}"><b>${esc(k.score ?? "-")}</b><small>${g.label}</small></div>
+        <div class="pick-body">
+          <div class="pick-head"><b>${esc(k.b)}</b><span>${esc(k.p)}</span></div>
+          <p>${esc(k.why)}</p>
+        </div>
+      </div>
+      <div class="pick-foot">
+        <div class="tags">${k.oil && k.oil !== "None" ? `<span class="tag">Oil · ${esc(k.oil)}</span>` : ""}${dietTags}</div>
+        ${action}
+      </div>
+      ${where}
+    </li>`;
+  }
+
+  function productCard(p, { ai = false, lead = false } = {}) {
     const diets = NON_FOOD.has(p.cat) ? [] : activeDiets();
     const rank = { yes: 0, unknown: 1, no: 2 };
     const picks = (p.picks || []).map((k) => ({ k, fit: diets.length ? pickFit(p, k, diets) : null }))
       .sort((a, b) => (a.fit && b.fit ? rank[a.fit.status] - rank[b.fit.status] : 0));
     const allNo = diets.length && picks.length && picks.every((x) => x.fit.status === "no");
-
-    const items = picks.map(({ k, fit }) => {
-      const g = grade(k.score ?? 70);
-      let actions;
-      if (k.recipe) actions = `<div class="buy"><a href="#" data-recipe="${esc(k.recipe)}" class="strong">See the recipe</a></div>`;
-      else if (k.local) actions = linkRow([
-        { label: "Find near me", url: `https://www.google.com/maps/search/?api=1&query=${enc(k.p + " near me")}` },
-        { label: "Shop Local tab", url: "#local" }
-      ]);
-      else actions = linkRow([...(k.site ? [{ label: "Brand site", url: k.site }] : []), ...buyLinks(k.b, k.p)]);
-      const dietTags = fit ? fit.per.map((x) =>
-        x.s === "yes" ? `<span class="tag fit">${icon("check", 12)}${esc(x.d.label)}</span>`
-        : x.s === "no" ? `<span class="tag nofit">Not ${esc(x.d.label.toLowerCase())}</span>` : "").join("") : "";
-      return `<li class="pick${fit && fit.status === "no" ? " dim" : ""}">
-        <div class="score ${g.cls}" title="${g.label}"><b>${esc(k.score ?? "-")}</b><small>${g.label}</small></div>
-        <div class="pick-body">
-          <div class="pick-head"><b>${esc(k.b)}</b><span>${esc(k.p)}</span></div>
-          <div class="tags">${k.oil ? `<span class="tag">Oil · ${esc(k.oil)}</span>` : ""}${dietTags}</div>
-          <p>${esc(k.why)}</p>
-          ${actions}
-          ${k.recipe ? "" : addBtn({ name: `${k.b} - ${k.p}`, note: p.name })}
-        </div>
-      </li>`;
-    }).join("");
-    const avoid = (p.avoid || []).length
-      ? `<details class="avoid"><summary>${icon("ban", 16)}Skip these (${p.avoid.length})</summary><ul>${p.avoid.map((a) => `<li><b>${esc(a.b)}</b>${esc(a.why)}</li>`).join("")}</ul></details>` : "";
-    return `<article class="card product">
-      <header><p class="kicker">${esc(p.cat || "")}${ai ? ` <span class="ai-badge">AI suggestion</span>` : ""}</p><h3>${esc(p.name)}</h3></header>
+    const Title = lead ? "h1" : "h2";
+    return `<article class="product${lead ? " lead" : ""}">
+      <header><p class="kicker">${esc(p.cat || "")}${ai ? ` <span class="ai-badge">AI suggestion</span>` : ""}</p><${Title} class="product-title">${esc(p.name)}</${Title}></header>
       ${allNo ? `<p class="diet-note">None of these fit ${esc(dietLabels(diets))}. Try the recipe tab for a version you can make.</p>` : ""}
-      ${p.tip ? `<p class="tip"><b>What to know</b>${esc(p.tip)}</p>` : ""}
+      ${p.tip ? `<div class="tip"><b>What to know</b>${esc(p.tip)}</div>` : ""}
       ${p.leastBad ? `<div class="leastbad"><b>Hard to find seed-oil-free?</b> ${esc(p.leastBad)}</div>` : ""}
-      <ul class="picks">${items}</ul>
-      ${avoid}
-      <p class="fine">Formulas change. Always double-check the label.</p>
+      <div class="subhead"><h3>Cleanest picks</h3><span class="meta">Scored 0-100</span></div>
+      <ul class="picks">${picks.map((x) => pickCard(x, p)).join("")}</ul>
+      ${(p.avoid || []).length ? `<div class="subhead"><h3>Skip these</h3></div>
+      <ul class="card skip-list">${p.avoid.map((a) => `<li>${icon("ban", 18)}<div><b>${esc(a.b)}</b><span>${esc(a.why)}</span></div></li>`).join("")}</ul>` : ""}
+      <p class="fine">Formulas change. Always double-check the label before you buy.</p>
     </article>`;
   }
 
   /* ---------------- clothing ---------------- */
   function clothingCard(c) {
     const picks = c.picks.map((k) => `<li class="pick">
-      <div class="score s-fiber">${icon("shirt", 22)}</div>
-      <div class="pick-body">
-        <div class="pick-head"><b>${esc(k.b)}</b><span>${esc(k.p)}</span></div>
+      <div class="pick-top">
+        <div class="score s-fiber">${icon("shirt", 22)}</div>
+        <div class="pick-body">
+          <div class="pick-head"><b>${esc(k.b)}</b><span>${esc(k.p)}</span></div>
+          <p>${esc(k.why)}</p>
+        </div>
+      </div>
+      <div class="pick-foot">
         <div class="tags"><span class="tag">${esc(k.mat)}</span></div>
-        <p>${esc(k.why)}</p>
-        ${linkRow([
-          { label: "Brand site", url: k.site },
-          { label: "Amazon", url: `https://www.amazon.com/s?k=${enc(k.b + " " + k.p)}` },
-          { label: "Google Shopping", url: `https://www.google.com/search?tbm=shop&q=${enc(k.b + " " + k.p)}` }
-        ])}
-        ${addBtn({ name: `${k.b} - ${k.p}`, note: c.name })}
-      </div></li>`).join("");
-    return `<article class="card product">
-      <header><p class="kicker">No polyester</p><h3>${esc(c.name)}</h3></header>
-      <p class="tip"><b>What to know</b>${esc(c.tip)}</p>
+        <button class="btn small" data-add='${esc(JSON.stringify({ name: `${k.b} - ${k.p}`, note: c.name }))}'>Add to list</button>
+      </div>
+      <details class="where"><summary>Where to buy</summary>${linkRow([
+        { label: "Brand site", url: k.site },
+        { label: "Amazon", url: `https://www.amazon.com/s?k=${enc(k.b + " " + k.p)}` },
+        { label: "Google Shopping", url: `https://www.google.com/search?tbm=shop&q=${enc(k.b + " " + k.p)}` }
+      ])}</details>
+    </li>`).join("");
+    return `<article class="product">
+      <header><p class="kicker">No polyester</p><h2 class="product-title">${esc(c.name)}</h2></header>
+      <div class="tip"><b>What to know</b>${esc(c.tip)}</div>
+      <div class="subhead"><h3>Cleanest picks</h3><span class="meta">100% natural fiber</span></div>
       <ul class="picks">${picks}</ul>
-      <div class="avoid static"><b>Avoid:</b> ${esc(c.avoid)}</div>
-      ${linkRow([
-        { label: `Search "100% cotton ${c.name.toLowerCase()}"`, url: `https://www.amazon.com/s?k=${enc("100% cotton " + c.name)}` },
-        { label: "100% wool", url: `https://www.amazon.com/s?k=${enc("100% wool " + c.name)}` },
-        { label: "Etsy handmade", url: `https://www.etsy.com/search?q=${enc("100% cotton " + c.name)}` }
-      ])}
+      <div class="subhead"><h3>Skip these</h3></div>
+      <ul class="card skip-list"><li>${icon("ban", 18)}<div><span>${esc(c.avoid)}</span></div></li></ul>
     </article>`;
   }
 
   function renderClothing(filter = "") {
     const list = filter.trim() ? searchIn(CLOTHING, filter, 10).map((x) => x.it) : CLOTHING;
-    $("#clothingList").innerHTML = list.length ? list.map(clothingCard).join("") : `<div class="card empty"><p>No match. Try "blanket", "sheets", "jeans" or "underwear".</p></div>`;
+    $("#clothingList").innerHTML = list.length ? list.map(clothingCard).join('<hr class="divider">') : `<div class="card empty"><p>No match. Try "blanket", "sheets", "jeans" or "underwear".</p></div>`;
   }
   function renderFibers() {
     $("#fiberList").innerHTML = FIBERS.map((f) => `<div class="fiber g-${f.grade}"><div><b>${esc(f.name)}</b><span>${esc(f.note)}</span></div></div>`).join("");
@@ -459,21 +470,17 @@
     const ingr = r.ingredients.map((i, idx) => {
       const qty = fmtQty(i.q * f, i.u);
       const bad = conflictAt.get(idx);
-      const links = i.brand && !/^(organic|local)\b/i.test(i.brand)
-        ? `<div class="ing-links"><span class="brand">${esc(i.brand)}</span>
-           <a href="https://www.amazon.com/s?k=${enc(i.brand)}" target="_blank" rel="noopener">Amazon</a>
-           <a href="https://thrivemarket.com/search?search=${enc(i.brand)}" target="_blank" rel="noopener">Thrive</a>
-           <a href="https://www.target.com/s?searchTerm=${enc(i.brand)}" target="_blank" rel="noopener">Target</a>
-           <a href="https://www.google.com/maps/search/?api=1&query=${enc(i.brand + " near me")}" target="_blank" rel="noopener">Nearby</a></div>`
-        : i.brand ? `<div class="ing-links"><span class="brand">${esc(i.brand)} · farmers market or grocery</span></div>` : "";
-      return `<li${bad ? ' class="conflict"' : ""}><label><input type="checkbox" data-ing="${idx}"><span><b>${esc(qty)}</b> ${esc(i.item)}${bad ? ` <span class="tag nofit">Not ${esc(bad.join(", ").toLowerCase())}</span>` : ""}</span></label>${links}</li>`;
+      const brand = !i.brand ? ""
+        : /^(organic|local)\b/i.test(i.brand) ? `<span class="ing-brand">${esc(i.brand)} · farmers market or grocery</span>`
+        : `<a class="ing-brand" href="https://www.amazon.com/s?k=${enc(i.brand)}" target="_blank" rel="noopener">${esc(i.brand)}</a>`;
+      return `<li${bad ? ' class="conflict"' : ""}><span class="ing-qty">${esc(qty)}</span><div><span>${esc(i.item)}${bad ? ` <span class="tag nofit">Not ${esc(bad.join(", ").toLowerCase())}</span>` : ""}</span>${brand}</div></li>`;
     }).join("");
 
     const dietPanel = fit ? `<div class="diet-panel">${fit.per.map((p) =>
       p.status === "fits" ? `<div class="diet-row fits"><b>${esc(p.diet.label)}</b>Fits as written.</div>`
       : p.status === "swap" ? `<div class="diet-row swap"><b>${esc(p.diet.label)} with a swap</b>${esc(p.swap.text)}</div>`
       : `<div class="diet-row no"><b>Not ${esc(p.diet.label.toLowerCase())}</b>Contains ${esc(p.conflicts.map((c) => c.item).join(", "))}.</div>`).join("")}</div>` : "";
-    const swapMatch = (s) => diets.some((d) => d.swapRx.test(s.tag));
+    const swapSel = Math.max(0, (r.swaps || []).findIndex((s) => diets.some((d) => d.swapRx.test(s.tag))));
 
     const panel = $("#sheet .sheet-panel");
     const keep = keepScroll ? panel.scrollTop : 0;
@@ -487,29 +494,33 @@
         </div>
         <div class="recipe-body">
         ${dietPanel}
-        <h3>Nutrition <small>per ${esc(r.unit || "serving")}, estimated</small></h3>
         <div class="nutri">
-          <div><b>${nut.cal ?? "-"}</b><span>Calories</span></div>
-          <div><b>${nut.protein ?? "-"}g</b><span>Protein</span></div>
-          <div><b>${nut.carbs ?? "-"}g</b><span>Carbs</span></div>
-          <div><b>${nut.fat ?? "-"}g</b><span>Fat</span></div>
-          <div><b>${nut.fiber ?? "-"}g</b><span>Fiber</span></div>
-          <div><b>${nut.sugar ?? "-"}g</b><span>Sugar</span></div>
+          <div><b>${nut.cal ?? "-"}</b><span>cal</span></div>
+          <div><b>${nut.protein ?? "-"}g</b><span>protein</span></div>
+          <div><b>${nut.carbs ?? "-"}g</b><span>carbs</span></div>
+          <div><b>${nut.fat ?? "-"}g</b><span>fat</span></div>
         </div>
+        <p class="fine" style="margin-top:8px">Per ${esc(r.unit || "serving")}, estimated · ${nut.fiber ?? "-"}g fiber · ${nut.sugar ?? "-"}g sugar</p>
         <div class="ing-head">
           <h3>Ingredients</h3>
-          <div class="stepper" aria-label="Servings">
-            <button data-serv="-1" aria-label="Fewer">${icon("minus", 16)}</button><span><b>${n}</b> ${esc(plural(r.unit || "serving", n))}</span><button data-serv="1" aria-label="More">${icon("plus", 16)}</button>
-          </div>
+          <button class="btn primary small" id="addAllIng">Add all to list</button>
+        </div>
+        <div class="stepper" aria-label="Servings">
+          <button data-serv="-1" aria-label="Fewer">${icon("minus", 16)}</button><span><b>${n}</b> ${esc(plural(r.unit || "serving", n))}</span><button data-serv="1" aria-label="More">${icon("plus", 16)}</button>
         </div>
         <ul class="ingredients">${ingr}</ul>
-        <button class="btn primary wide" id="addAllIng">${icon("plus", 16)}Add all ingredients to my list</button>
         <h3>Method</h3>
         <ol class="steps big">${r.steps.map((s) => `<li><span>${esc(s)}</span></li>`).join("")}</ol>
         ${r.tip ? `<p class="tip"><b>Tip</b>${esc(r.tip)}</p>` : ""}
-        ${(r.swaps || []).length ? `<h3>Swaps</h3><div class="swaps">${r.swaps.map((s) => `<div class="swap${swapMatch(s) ? " match" : ""}"><span class="tag${swapMatch(s) ? " fit" : ""}">${esc(s.tag)}</span><p>${esc(s.text)}</p></div>`).join("")}</div>` : ""}
+        ${(r.swaps || []).length ? `<div class="card swap-box"><h3>Swaps</h3>
+          <div class="chips" role="group" aria-label="Swaps">${r.swaps.map((s, i) => `<button class="chip${i === swapSel ? " active" : ""}" data-swap="${i}" aria-pressed="${i === swapSel}">${esc(s.tag)}</button>`).join("")}</div>
+          <p class="swap-text">${esc(r.swaps[swapSel].text)}</p></div>` : ""}
         </div>
       </div>`;
+    $$("[data-swap]", $("#sheetBody")).forEach((b) => b.addEventListener("click", () => {
+      $$("[data-swap]", $("#sheetBody")).forEach((x) => { x.classList.toggle("active", x === b); x.setAttribute("aria-pressed", String(x === b)); });
+      $(".swap-text", $("#sheetBody")).textContent = r.swaps[Number(b.dataset.swap)].text;
+    }));
     $$("[data-serv]", $("#sheetBody")).forEach((b) =>
       b.addEventListener("click", () => openRecipe(r, Math.max(1, n + Number(b.dataset.serv)), { keepScroll: true })));
     $("#addAllIng").addEventListener("click", () =>
@@ -955,17 +966,20 @@
       const types = [...new Set(places.map((p) => p.type))];
       out.innerHTML = `<div class="subhead"><h3>Near ${esc(label)}</h3><span class="meta">${places.length} places</span></div>
         <div class="chips filter-chips"><button class="chip active" data-ft="">All</button>${types.map((t) => `<button class="chip" data-ft="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-        <div class="card" style="padding-top:0;padding-bottom:0"><ul class="places" style="margin:0">${places.map((p) => {
+        <ul class="places">${places.map((p) => {
           const addr = [p.t["addr:housenumber"], p.t["addr:street"], p.t["addr:city"]].filter(Boolean).join(" ");
           const site = p.t.website || p.t["contact:website"];
-          return `<li data-type="${esc(p.type)}"><span class="place-dot">${icon("pin", 18)}</span><div style="min-width:0">
-            <p class="kicker" style="margin:0">${esc(p.type)} · ${p.d.toFixed(1)} mi</p>
-            <b>${esc(p.name)}</b>
-            ${addr ? `<div class="meta">${esc(addr)}</div>` : ""}
-            ${p.t.opening_hours ? `<div class="meta">${icon("clock", 13).replace('class="ic"', 'class="ic" style="display:inline;vertical-align:-2px"')} ${esc(p.t.opening_hours)}</div>` : ""}
-            <div class="buy"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.pos.lat},${p.pos.lon}">Directions</a>${site ? `<a target="_blank" rel="noopener" href="${esc(site)}">Website</a>` : ""}<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${enc(p.name + " " + (p.t["addr:city"] || label))}">Reviews</a></div>
-          </div></li>`;
-        }).join("")}</ul></div>
+          return `<li class="place" data-type="${esc(p.type)}"><span class="place-dot">${icon("pin", 18)}</span>
+            <div class="place-body">
+              <p class="kicker">${esc(p.type)}</p>
+              <b>${esc(p.name)}</b>
+              <span class="meta">${p.d.toFixed(1)} mi${addr ? ` · ${esc(addr)}` : ""}</span>
+              ${p.t.opening_hours ? `<span class="meta">${esc(p.t.opening_hours)}</span>` : ""}
+              <span class="place-links">${site ? `<a target="_blank" rel="noopener" href="${esc(site)}">Website</a>` : ""}<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${enc(p.name + " " + (p.t["addr:city"] || label))}">Reviews</a></span>
+            </div>
+            <a class="round-btn small" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name)}" href="https://www.google.com/maps/dir/?api=1&destination=${p.pos.lat},${p.pos.lon}">${icon("arrow", 18)}</a>
+          </li>`;
+        }).join("")}</ul>
         <p class="fine">Map data © OpenStreetMap contributors. Always call ahead; hours change seasonally.</p>`;
       $$("[data-ft]", out).forEach((b) => b.addEventListener("click", () => {
         $$("[data-ft]", out).forEach((x) => x.classList.toggle("active", x === b));
@@ -1090,6 +1104,7 @@ Standards you apply:
     renderDietBars();
     renderDailySwap();
     $("#q").addEventListener("input", (e) => { if (!e.target.value.trim()) renderResults(""); });
+    $("#searchBack").addEventListener("click", () => { $("#q").value = ""; renderResults(""); window.scrollTo({ top: 0 }); });
 
     $("#searchForm").addEventListener("submit", (e) => { e.preventDefault(); $("#q").blur(); runSearch($("#q").value); });
     $("#recipeFilter").addEventListener("input", (e) => renderRecipeGrid(e.target.value));
