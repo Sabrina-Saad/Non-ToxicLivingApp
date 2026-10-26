@@ -7,11 +7,39 @@
   const CLOTHING = window.NTL_CLOTHING || [];
   const FIBERS = window.NTL_FIBERS || [];
   const ADDITIVES = (window.NTL_ADDITIVES || []).map((a) => ({ ...a, rx: new RegExp(a.re, "i") }));
+  const CAT_WORDS = window.NTL_DIET_CATEGORY_WORDS || {};
+  const DIETS = (window.NTL_DIETS || []).map((d) => ({
+    ...d,
+    safeRx: new RegExp(d.safe.join("|"), "gi"),
+    badRx: d.bad.map(([re, name]) => ({ rx: new RegExp(re, "i"), name })),
+    yesRx: new RegExp(d.yes, "i"),
+    swapRx: new RegExp(d.swap, "i"),
+    catRx: CAT_WORDS[d.id] ? new RegExp(CAT_WORDS[d.id], "i") : null
+  }));
+  const NON_FOOD = new Set(["Home", "Personal Care"]);
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const enc = encodeURIComponent;
+
+  /* ---------------- icons (thin line, no emoji) ---------------- */
+  const ICONS = {
+    search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    minus: '<path d="M5 12h14"/>',
+    check: '<path d="m5 12.5 4.5 4.5L19 7"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 18 18 6"/>',
+    pin: '<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.2"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    arrow: '<path d="m9 5 7 7-7 7"/>',
+    external: '<path d="M7 17 17 7M9 7h8v8"/>',
+    shirt: '<path d="M9 4 4 6.5 5.5 11 8 10v10h8V10l2.5 1L20 6.5 15 4a3 3 0 0 1-6 0Z"/>',
+    share: '<path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>'
+  };
+  const icon = (name, size = 18) =>
+    `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
 
   /* ---------------- storage (never throws) ---------------- */
   const store = {
@@ -31,13 +59,14 @@
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(toast._t);
-    toast._t = setTimeout(() => t.classList.remove("show"), 2200);
+    toast._t = setTimeout(() => t.classList.remove("show"), 2400);
   }
 
   /* ---------------- navigation ---------------- */
   const VIEWS = ["search", "recipes", "scan", "local", "clothing", "about", "list"];
   function go(view, { push = true } = {}) {
     if (!VIEWS.includes(view)) view = "search";
+    if (view !== "scan") stopScan();
     $$(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + view));
     $$(".tabbar button").forEach((b) => b.classList.toggle("active", b.dataset.go === view));
     if (push && location.hash !== "#" + view) history.pushState(null, "", "#" + view);
@@ -55,9 +84,103 @@
     if (r) { e.preventDefault(); openRecipe(r.dataset.recipe); return; }
     const add = e.target.closest("[data-add]");
     if (add) { e.preventDefault(); addToList([JSON.parse(add.dataset.add)]); return; }
+    const d = e.target.closest("[data-diet]");
+    if (d) { toggleDiet(d.dataset.diet); return; }
+    if (e.target.closest("[data-diet-clear]")) { setDiets([]); return; }
     if (e.target.closest("[data-close]")) closeSheets();
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheets(); });
+
+  /* ---------------- diets ---------------- */
+  const getDiets = () => store.get("diets", []).filter((id) => DIETS.some((d) => d.id === id));
+  const activeDiets = () => { const ids = getDiets(); return DIETS.filter((d) => ids.includes(d.id)); };
+  const dietLabels = (list) => list.map((d) => d.label).join(" + ");
+
+  function setDiets(ids) {
+    store.set("diets", ids);
+    syncDietBars();
+    onDietChange();
+  }
+  function toggleDiet(id) {
+    const ids = getDiets();
+    setDiets(ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
+  }
+  function renderDietBars() {
+    $$("[data-diet-bar]").forEach((el) => {
+      const title = el.dataset.dietTitle || "Diet";
+      el.innerHTML = `<div class="diet-head"><p class="kicker">${esc(title)}</p><button class="diet-clear" data-diet-clear hidden>Clear</button></div>
+        <div class="diet-bar" role="group" aria-label="${esc(title)}">${DIETS.map((d) =>
+          `<button class="diet-chip" data-diet="${esc(d.id)}" aria-pressed="false">${icon("check", 15)}${esc(d.label)}</button>`).join("")}</div>`;
+    });
+    syncDietBars();
+  }
+  // Update pressed state in place so the scrolled chip row doesn't jump.
+  function syncDietBars() {
+    const ids = getDiets();
+    $$(".diet-chip").forEach((b) => b.setAttribute("aria-pressed", String(ids.includes(b.dataset.diet))));
+    $$("[data-diet-clear]").forEach((b) => (b.hidden = !ids.length));
+  }
+  function onDietChange() {
+    const q = $("#q").value;
+    if (q.trim() && $("#results").innerHTML) renderResults(q);
+    renderRecipeGrid($("#recipeFilter").value);
+    if (lastAnalysis) renderAnalysis(lastAnalysis, { scroll: false });
+    if (!$("#sheet").hidden && currentRecipe) openRecipe(currentRecipe, currentServings, { keepScroll: true });
+  }
+
+  // What in `text` breaks this diet? Returns [{ name, word }].
+  function dietConflicts(diet, text) {
+    let t = " " + String(text || "").toLowerCase().replace(/[’']/g, "'") + " ";
+    t = t.replace(diet.safeRx, " ");
+    t = t.replace(/\b(no|without|free of|zero|never|not)\s+(added\s+)?[a-z]+(?:\s*(?:,|or|and|&)\s*[a-z]+)*/g, " ").replace(/\b[a-z]+-free\b/g, " ");
+    const out = [];
+    for (const b of diet.badRx) {
+      const m = t.match(b.rx);
+      if (m && !out.some((o) => o.name === b.name)) out.push({ name: b.name, word: m[0].trim() });
+    }
+    return out;
+  }
+
+  // Recipe vs one diet: "fits" | "swap" | "no", with the conflicting ingredients.
+  function recipeDiet(r, diet) {
+    const conflicts = [];
+    if (diet.keto) {
+      const n = r.nutrition || {};
+      const net = Math.round((n.carbs ?? 99) - (n.fiber ?? 0));
+      if (net > 10) conflicts.push({ item: `about ${net}g net carbs per ${r.unit || "serving"}`, name: "too many carbs" });
+    } else {
+      r.ingredients.forEach((i, idx) => {
+        // "butter or coconut oil" only breaks a diet if every option does; "(optional)" never does.
+        const text = String(i.item).replace(/\([^)]*\b(swap|instead|not)\b[^)]*\)/gi, " ");
+        if (/\boptional\b/i.test(text)) return;
+        const alts = text.replace(/[()]/g, " ").split(/\s+or\s+/i).map((a) => dietConflicts(diet, a));
+        if (alts.every((c) => c.length)) conflicts.push({ idx, item: i.item, name: alts[0][0].name });
+      });
+    }
+    const swap = (r.swaps || []).find((s) => diet.swapRx.test(s.tag));
+    return { diet, conflicts, swap, status: !conflicts.length ? "fits" : swap ? "swap" : "no" };
+  }
+  function recipeFit(r, diets = activeDiets()) {
+    const per = diets.map((d) => recipeDiet(r, d));
+    const status = per.some((p) => p.status === "no") ? "no" : per.some((p) => p.status === "swap") ? "swap" : "fits";
+    return { per, status };
+  }
+
+  // Product pick vs the selected diets: "yes" | "no" | "unknown"
+  function pickFit(category, pick, diets) {
+    const catText = `${category.name} ${(category.keys || []).join(" ")}`;
+    const text = `${pick.p} ${pick.why || ""}`;
+    const per = diets.map((d) => {
+      const conflict = dietConflicts(d, text);
+      if (conflict.length) return { d, s: "no", why: conflict[0].name };
+      if (d.yesRx.test(text)) return { d, s: "yes" };
+      const catBad = dietConflicts(d, catText).length || (d.catRx && d.catRx.test(catText));
+      if (catBad && pick.b !== "Homemade") return { d, s: "no", why: "" };
+      return { d, s: "unknown" };
+    });
+    const status = per.some((p) => p.s === "no") ? "no" : per.every((p) => p.s === "yes") ? "yes" : "unknown";
+    return { per, status };
+  }
 
   /* ---------------- link builders ---------------- */
   function buyLinks(brand, product) {
@@ -68,14 +191,14 @@
       { label: "Target", url: `https://www.target.com/s?searchTerm=${enc(q)}` },
       { label: "Walmart", url: `https://www.walmart.com/search?q=${enc(q)}` },
       { label: "Whole Foods", url: `https://www.wholefoodsmarket.com/search?text=${enc(q)}` },
-      { label: "📍 Nearby", url: `https://www.google.com/maps/search/?api=1&query=${enc(q + " near me")}` }
+      { label: "Nearby", url: `https://www.google.com/maps/search/?api=1&query=${enc(q + " near me")}` }
     ];
   }
   const linkRow = (links) =>
     `<div class="buy">${links.map((l) => l.url.startsWith("#")
       ? `<a href="#" data-go="${esc(l.url.slice(1))}">${esc(l.label)}</a>`
       : `<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join("")}</div>`;
-  const addBtn = (item) => `<button class="add-btn" data-add='${esc(JSON.stringify(item))}' aria-label="Add to shopping list">＋ List</button>`;
+  const addBtn = (item) => `<button class="add-btn" data-add='${esc(JSON.stringify(item))}' aria-label="Add to shopping list">${icon("plus", 14)}List</button>`;
 
   /* ---------------- scores (Yuka-style) ---------------- */
   function grade(score) {
@@ -116,8 +239,13 @@
   function runSearch(query) {
     go("search");
     $("#q").value = query;
+    renderResults(query);
+  }
+
+  function renderResults(query) {
     const out = $("#results");
     if (!query.trim()) { out.innerHTML = ""; return; }
+    const diets = activeDiets();
 
     let prods = searchIn(PRODUCTS, query);
     let recs = searchIn(RECIPES, query);
@@ -125,14 +253,26 @@
     // Drop weak partial matches (e.g. "rice" in fried rice when searching "rice krispies")
     const top = Math.max(0, ...[prods, recs, cloth].map((l) => (l[0] ? l[0].s : 0)));
     const strong = (l, n) => l.filter((x) => x.s >= top * 0.5).slice(0, n);
-    prods = strong(prods, 4); recs = strong(recs, 4); cloth = strong(cloth, 3);
+    prods = strong(prods, 5); recs = strong(recs, 6); cloth = strong(cloth, 3);
+
+    let hiddenRecipes = 0;
+    if (diets.length) {
+      const before = recs.length;
+      recs = recs.filter((x) => recipeFit(x.it, diets).status !== "no")
+        .sort((a, b) => (recipeFit(a.it, diets).status === "fits" ? 0 : 1) - (recipeFit(b.it, diets).status === "fits" ? 0 : 1));
+      hiddenRecipes = before - recs.length;
+    }
 
     const nq = norm(query);
     const wantsRecipe = /\b(craving|crave|recipe|make|bake|cook|homemade)\b/.test(nq);
     const sections = [];
-    if (prods.length) sections.push({ s: prods[0].s + (wantsRecipe ? 0 : 5), html: `<h2 class="sec-title">🛍️ Clean brands to buy</h2>${prods.map((x) => productCard(x.it)).join("")}` });
-    if (recs.length) sections.push({ s: recs[0].s + (wantsRecipe ? 50 : 0), html: `<h2 class="sec-title">👩‍🍳 Make it yourself</h2><div class="grid">${recs.map((x) => recipeCard(x.it)).join("")}</div>` });
-    if (cloth.length) sections.push({ s: cloth[0].s, html: `<h2 class="sec-title">🧺 Natural-fiber picks</h2>${cloth.map((x) => clothingCard(x.it)).join("")}` });
+    if (prods.length) sections.push({ s: prods[0].s + (wantsRecipe ? 0 : 5), html: `<h2 class="sec-title">Clean brands to buy</h2>${prods.map((x) => productCard(x.it)).join("")}` });
+    if (recs.length || hiddenRecipes) sections.push({
+      s: (recs[0] ? recs[0].s : 0) + (wantsRecipe ? 50 : 0),
+      html: `<h2 class="sec-title">Make it yourself</h2>${recs.length ? `<div class="grid">${recs.map((x) => recipeCard(x.it)).join("")}</div>` : ""}
+        ${hiddenRecipes ? `<p class="hidden-note">${hiddenRecipes} recipe${hiddenRecipes > 1 ? "s" : ""} hidden because ${hiddenRecipes > 1 ? "they don't" : "it doesn't"} fit ${esc(dietLabels(diets))}.</p>` : ""}`
+    });
+    if (cloth.length) sections.push({ s: cloth[0].s, html: `<h2 class="sec-title">Natural-fiber picks</h2>${cloth.map((x) => clothingCard(x.it)).join("")}` });
     sections.sort((a, b) => b.s - a.s);
 
     out.innerHTML = (sections.length ? sections.map((s) => s.html).join("") : noResults(query)) + aiBox(query, !sections.length);
@@ -146,7 +286,7 @@
       <p>Here's how to find a clean version fast:</p>
       <ol class="steps">
         <li>Flip the package and use <a href="#" data-go="scan">Label Check</a> to scan or paste the ingredients.</li>
-        <li>Look for: <b>avocado oil, olive oil, coconut oil, butter or tallow</b> - and no canola, soybean, sunflower or "vegetable oil".</li>
+        <li>Look for <b>avocado oil, olive oil, coconut oil, butter or tallow</b>, and no canola, soybean, sunflower or "vegetable oil".</li>
         <li>Search the clean grocers below.</li>
       </ol>
       ${linkRow([
@@ -160,20 +300,29 @@
 
   /* ---------------- product cards ---------------- */
   function productCard(p, { ai = false } = {}) {
-    const picks = (p.picks || []).map((k) => {
+    const diets = NON_FOOD.has(p.cat) ? [] : activeDiets();
+    const rank = { yes: 0, unknown: 1, no: 2 };
+    const picks = (p.picks || []).map((k) => ({ k, fit: diets.length ? pickFit(p, k, diets) : null }))
+      .sort((a, b) => (a.fit && b.fit ? rank[a.fit.status] - rank[b.fit.status] : 0));
+    const allNo = diets.length && picks.length && picks.every((x) => x.fit.status === "no");
+
+    const items = picks.map(({ k, fit }) => {
       const g = grade(k.score ?? 70);
       let actions;
-      if (k.recipe) actions = `<div class="buy"><a href="#" data-recipe="${esc(k.recipe)}" class="strong">👩‍🍳 See the recipe</a></div>`;
+      if (k.recipe) actions = `<div class="buy"><a href="#" data-recipe="${esc(k.recipe)}" class="strong">See the recipe</a></div>`;
       else if (k.local) actions = linkRow([
-        { label: "📍 Find near me", url: `https://www.google.com/maps/search/?api=1&query=${enc(k.p + " near me")}` },
-        { label: "🧑‍🌾 Shop Local tab", url: "#local" }
+        { label: "Find near me", url: `https://www.google.com/maps/search/?api=1&query=${enc(k.p + " near me")}` },
+        { label: "Shop Local tab", url: "#local" }
       ]);
       else actions = linkRow([...(k.site ? [{ label: "Brand site", url: k.site }] : []), ...buyLinks(k.b, k.p)]);
-      return `<li class="pick">
-        <div class="score ${g.cls}" title="${g.label}"><b>${esc(k.score ?? "–")}</b><small>${g.label}</small></div>
+      const dietTags = fit ? fit.per.map((x) =>
+        x.s === "yes" ? `<span class="tag fit">${icon("check", 12)}${esc(x.d.label)}</span>`
+        : x.s === "no" ? `<span class="tag nofit">Not ${esc(x.d.label.toLowerCase())}</span>` : "").join("") : "";
+      return `<li class="pick${fit && fit.status === "no" ? " dim" : ""}">
+        <div class="score ${g.cls}" title="${g.label}"><b>${esc(k.score ?? "-")}</b><small>${g.label}</small></div>
         <div class="pick-body">
-          <div class="pick-head"><b>${esc(k.b)}</b> <span>${esc(k.p)}</span></div>
-          ${k.oil ? `<span class="tag oil">🫒 ${esc(k.oil)}</span>` : ""}
+          <div class="pick-head"><b>${esc(k.b)}</b><span>${esc(k.p)}</span></div>
+          <div class="tags">${k.oil ? `<span class="tag">Oil · ${esc(k.oil)}</span>` : ""}${dietTags}</div>
           <p>${esc(k.why)}</p>
           ${actions}
           ${k.recipe ? "" : addBtn({ name: `${k.b} - ${k.p}`, note: p.name })}
@@ -181,24 +330,25 @@
       </li>`;
     }).join("");
     const avoid = (p.avoid || []).length
-      ? `<details class="avoid"><summary>🚫 Skip these (${p.avoid.length})</summary><ul>${p.avoid.map((a) => `<li><b>${esc(a.b)}</b> - ${esc(a.why)}</li>`).join("")}</ul></details>` : "";
+      ? `<details class="avoid"><summary>${icon("ban", 16)}Skip these (${p.avoid.length})</summary><ul>${p.avoid.map((a) => `<li><b>${esc(a.b)}</b>${esc(a.why)}</li>`).join("")}</ul></details>` : "";
     return `<article class="card product">
-      <header><span class="emoji">${esc(p.emoji || "🛒")}</span><div><h3>${esc(p.name)}</h3><span class="cat">${esc(p.cat || "")}</span></div>${ai ? `<span class="ai-badge">✨ AI</span>` : ""}</header>
-      ${p.tip ? `<p class="tip">💡 ${esc(p.tip)}</p>` : ""}
-      ${p.leastBad ? `<div class="leastbad"><b>⚠️ Hard to find seed-oil-free?</b> ${esc(p.leastBad)}</div>` : ""}
-      <ul class="picks">${picks}</ul>
+      <header><p class="kicker">${esc(p.cat || "")}${ai ? ` <span class="ai-badge">AI suggestion</span>` : ""}</p><h3>${esc(p.name)}</h3></header>
+      ${allNo ? `<p class="diet-note">None of these fit ${esc(dietLabels(diets))}. Try the recipe tab for a version you can make.</p>` : ""}
+      ${p.tip ? `<p class="tip"><b>What to know</b>${esc(p.tip)}</p>` : ""}
+      ${p.leastBad ? `<div class="leastbad"><b>Hard to find seed-oil-free?</b> ${esc(p.leastBad)}</div>` : ""}
+      <ul class="picks">${items}</ul>
       ${avoid}
-      <p class="fine">Formulas change - always double-check the label.</p>
+      <p class="fine">Formulas change. Always double-check the label.</p>
     </article>`;
   }
 
   /* ---------------- clothing ---------------- */
   function clothingCard(c) {
     const picks = c.picks.map((k) => `<li class="pick">
-      <div class="score s-fiber"><b>🧵</b></div>
+      <div class="score s-fiber">${icon("shirt", 22)}</div>
       <div class="pick-body">
-        <div class="pick-head"><b>${esc(k.b)}</b> <span>${esc(k.p)}</span></div>
-        <span class="tag fiber">${esc(k.mat)}</span>
+        <div class="pick-head"><b>${esc(k.b)}</b><span>${esc(k.p)}</span></div>
+        <div class="tags"><span class="tag">${esc(k.mat)}</span></div>
         <p>${esc(k.why)}</p>
         ${linkRow([
           { label: "Brand site", url: k.site },
@@ -208,10 +358,10 @@
         ${addBtn({ name: `${k.b} - ${k.p}`, note: c.name })}
       </div></li>`).join("");
     return `<article class="card product">
-      <header><span class="emoji">${esc(c.emoji)}</span><div><h3>${esc(c.name)}</h3><span class="cat">No polyester</span></div></header>
-      <p class="tip">💡 ${esc(c.tip)}</p>
+      <header><p class="kicker">No polyester</p><h3>${esc(c.name)}</h3></header>
+      <p class="tip"><b>What to know</b>${esc(c.tip)}</p>
       <ul class="picks">${picks}</ul>
-      <div class="avoid static">🚫 <b>Avoid:</b> ${esc(c.avoid)}</div>
+      <div class="avoid static"><b>Avoid:</b> ${esc(c.avoid)}</div>
       ${linkRow([
         { label: `Search "100% cotton ${c.name.toLowerCase()}"`, url: `https://www.amazon.com/s?k=${enc("100% cotton " + c.name)}` },
         { label: "100% wool", url: `https://www.amazon.com/s?k=${enc("100% wool " + c.name)}` },
@@ -222,24 +372,42 @@
 
   function renderClothing(filter = "") {
     const list = filter.trim() ? searchIn(CLOTHING, filter, 10).map((x) => x.it) : CLOTHING;
-    $("#clothingList").innerHTML = list.length ? list.map(clothingCard).join("") : `<div class="card empty"><p>No match - try "blanket", "sheets", "jeans" or "underwear".</p></div>`;
+    $("#clothingList").innerHTML = list.length ? list.map(clothingCard).join("") : `<div class="card empty"><p>No match. Try "blanket", "sheets", "jeans" or "underwear".</p></div>`;
   }
   function renderFibers() {
-    $("#fiberList").innerHTML = FIBERS.map((f) => `<div class="fiber g-${f.grade}"><b>${esc(f.name)}</b><span>${esc(f.note)}</span></div>`).join("");
+    $("#fiberList").innerHTML = FIBERS.map((f) => `<div class="fiber g-${f.grade}"><div><b>${esc(f.name)}</b><span>${esc(f.note)}</span></div></div>`).join("");
   }
 
   /* ---------------- recipes ---------------- */
   function recipeCard(r) {
+    const diets = activeDiets();
+    const nut = r.nutrition || {};
+    const tags = diets.length
+      ? recipeFit(r, diets).per.map((x) => x.status === "fits" ? `<span class="tag fit">${icon("check", 12)}${esc(x.diet.label)}</span>`
+        : x.status === "swap" ? `<span class="tag swapfit">${esc(x.diet.label)} with a swap</span>` : "").join("")
+      : (r.tags || []).slice(0, 2).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
     return `<button class="card recipe-card" data-recipe="${esc(r.id)}">
-      <span class="emoji big">${esc(r.emoji)}</span>
-      <h3>${esc(r.title)}</h3>
-      <p class="meta">⏱ ${esc(r.time)} · ${r.nutrition.protein}g protein · ${r.nutrition.cal} cal</p>
-      <div class="tags">${(r.tags || []).slice(0, 3).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+      <div class="rc-top"><p class="kicker">${nut.protein ?? "-"}g protein · ${nut.cal ?? "-"} cal</p><h3>${esc(r.title)}</h3></div>
+      <div class="rc-body"><p class="meta">${esc(r.time)}</p><div class="tags">${tags}</div></div>
     </button>`;
   }
   function renderRecipeGrid(filter = "") {
-    const list = filter.trim() ? searchIn(RECIPES, filter, 10).map((x) => x.it) : RECIPES;
-    $("#recipeGrid").innerHTML = list.length ? list.map(recipeCard).join("") : `<div class="card empty"><p>No recipe match. Try the main search - or add an AI key in ⚙️ Settings to generate any recipe.</p></div>`;
+    let list = filter.trim() ? searchIn(RECIPES, filter, 10).map((x) => x.it) : RECIPES;
+    const diets = activeDiets();
+    const grid = (l) => `<div class="grid">${l.map(recipeCard).join("")}</div>`;
+    if (!list.length) {
+      $("#recipeGrid").innerHTML = `<div class="card empty"><p>No recipe match. Try the main search, or add an AI key in Settings to generate any recipe.</p></div>`;
+      return;
+    }
+    if (!diets.length) { $("#recipeGrid").innerHTML = grid(list); return; }
+    const fits = [], swaps = [];
+    let hidden = 0;
+    list.forEach((r) => { const s = recipeFit(r, diets).status; if (s === "fits") fits.push(r); else if (s === "swap") swaps.push(r); else hidden++; });
+    const label = esc(dietLabels(diets));
+    $("#recipeGrid").innerHTML = `
+      ${fits.length ? `<div class="subhead"><h3>Fits ${label}</h3><span class="meta">${fits.length}</span></div>${grid(fits)}` : `<p class="hidden-note">No recipe fits ${label} exactly as written.</p>`}
+      ${swaps.length ? `<div class="subhead"><h3>Works with a swap</h3><span class="meta">${swaps.length}</span></div>${grid(swaps)}` : ""}
+      ${hidden ? `<p class="hidden-note">${hidden} recipe${hidden > 1 ? "s" : ""} hidden because ${hidden > 1 ? "they don't" : "it doesn't"} fit ${label}.</p>` : ""}`;
   }
 
   const FRACS = [[0, ""], [0.125, "⅛"], [0.25, "¼"], [0.333, "⅓"], [0.5, "½"], [0.667, "⅔"], [0.75, "¾"], [1, ""]];
@@ -254,67 +422,91 @@
     if (!str) return "pinch";
     return `${str}${u ? " " + u : ""}`;
   }
+  const plural = (u, n) => (n === 1 || /s$/.test(u) ? u : u + "s");
 
   let currentRecipe = null;
-  function openRecipe(idOrObj, servings) {
+  let currentServings = null;
+  function openRecipe(idOrObj, servings, { keepScroll = false } = {}) {
     const r = typeof idOrObj === "string" ? RECIPES.find((x) => x.id === idOrObj) || (currentRecipe && currentRecipe.id === idOrObj ? currentRecipe : null) : idOrObj;
     if (!r) return;
     currentRecipe = r;
     const n = servings || r.serves;
+    currentServings = n;
     const f = n / r.serves;
     const nut = r.nutrition || {};
+    const diets = activeDiets();
+    const fit = diets.length && r.ingredients ? recipeFit(r, diets) : null;
+    const conflictAt = new Map();
+    if (fit) fit.per.forEach((p) => p.conflicts.forEach((c) => { if (c.idx != null) conflictAt.set(c.idx, [...(conflictAt.get(c.idx) || []), p.diet.label]); }));
+
     const ingr = r.ingredients.map((i, idx) => {
       const qty = fmtQty(i.q * f, i.u);
+      const bad = conflictAt.get(idx);
       const links = i.brand && !/^(organic|local)\b/i.test(i.brand)
-        ? `<div class="ing-links"><span class="brand">✔︎ ${esc(i.brand)}</span>
+        ? `<div class="ing-links"><span class="brand">${esc(i.brand)}</span>
            <a href="https://www.amazon.com/s?k=${enc(i.brand)}" target="_blank" rel="noopener">Amazon</a>
            <a href="https://thrivemarket.com/search?search=${enc(i.brand)}" target="_blank" rel="noopener">Thrive</a>
            <a href="https://www.target.com/s?searchTerm=${enc(i.brand)}" target="_blank" rel="noopener">Target</a>
-           <a href="https://www.google.com/maps/search/?api=1&query=${enc(i.brand + " near me")}" target="_blank" rel="noopener">📍</a></div>`
-        : i.brand ? `<div class="ing-links"><span class="brand">✔︎ ${esc(i.brand)} - farmers market or grocery</span></div>` : "";
-      return `<li><label><input type="checkbox" data-ing="${idx}"><span><b>${esc(qty)}</b> ${esc(i.item)}</span></label>${links}</li>`;
+           <a href="https://www.google.com/maps/search/?api=1&query=${enc(i.brand + " near me")}" target="_blank" rel="noopener">Nearby</a></div>`
+        : i.brand ? `<div class="ing-links"><span class="brand">${esc(i.brand)} · farmers market or grocery</span></div>` : "";
+      return `<li${bad ? ' class="conflict"' : ""}><label><input type="checkbox" data-ing="${idx}"><span><b>${esc(qty)}</b> ${esc(i.item)}${bad ? ` <span class="tag nofit">Not ${esc(bad.join(", ").toLowerCase())}</span>` : ""}</span></label>${links}</li>`;
     }).join("");
+
+    const dietPanel = fit ? `<div class="diet-panel">${fit.per.map((p) =>
+      p.status === "fits" ? `<div class="diet-row fits"><b>${esc(p.diet.label)}</b>Fits as written.</div>`
+      : p.status === "swap" ? `<div class="diet-row swap"><b>${esc(p.diet.label)} with a swap</b>${esc(p.swap.text)}</div>`
+      : `<div class="diet-row no"><b>Not ${esc(p.diet.label.toLowerCase())}</b>Contains ${esc(p.conflicts.map((c) => c.item).join(", "))}.</div>`).join("")}</div>` : "";
+    const swapMatch = (s) => diets.some((d) => d.swapRx.test(s.tag));
+
+    const panel = $("#sheet .sheet-panel");
+    const keep = keepScroll ? panel.scrollTop : 0;
     $("#sheetBody").innerHTML = `
       <div class="recipe">
-        <div class="recipe-hero"><span class="emoji huge">${esc(r.emoji || "🍽️")}</span>
-          <div><h2>${esc(r.title)}</h2><p class="meta">⏱ ${esc(r.time)}</p>
-          <div class="tags">${(r.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}${r.ai ? `<span class="ai-badge">✨ AI-generated - double-check labels</span>` : ""}</div></div>
+        <div class="recipe-hero">
+          <p class="kicker" style="margin:0">Recipe · makes ${r.serves} ${esc(plural(r.unit || "serving", r.serves))}</p>
+          <h2>${esc(r.title)}</h2>
+          ${r.intro ? `<p class="intro">${esc(r.intro)}</p>` : ""}
+          <div class="tags"><span class="tag">${icon("clock", 13)}${esc(r.time)}</span>${(r.tags || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}${r.ai ? `<span class="ai-badge">AI-generated · double-check labels</span>` : ""}</div>
         </div>
-        ${r.intro ? `<p class="intro">${esc(r.intro)}</p>` : ""}
-        <h3>Nutrition <small>per ${esc(r.unit || "serving")} (estimated)</small></h3>
+        <div class="recipe-body">
+        ${dietPanel}
+        <h3>Nutrition <small>per ${esc(r.unit || "serving")}, estimated</small></h3>
         <div class="nutri">
-          <div><b>${nut.cal ?? "–"}</b><span>Calories</span></div>
-          <div class="hl-protein"><b>${nut.protein ?? "–"}g</b><span>Protein</span></div>
-          <div><b>${nut.carbs ?? "–"}g</b><span>Carbs</span></div>
-          <div><b>${nut.fat ?? "–"}g</b><span>Fat</span></div>
-          <div><b>${nut.fiber ?? "–"}g</b><span>Fiber</span></div>
-          <div><b>${nut.sugar ?? "–"}g</b><span>Sugar</span></div>
+          <div><b>${nut.cal ?? "-"}</b><span>Calories</span></div>
+          <div><b>${nut.protein ?? "-"}g</b><span>Protein</span></div>
+          <div><b>${nut.carbs ?? "-"}g</b><span>Carbs</span></div>
+          <div><b>${nut.fat ?? "-"}g</b><span>Fat</span></div>
+          <div><b>${nut.fiber ?? "-"}g</b><span>Fiber</span></div>
+          <div><b>${nut.sugar ?? "-"}g</b><span>Sugar</span></div>
         </div>
         <div class="ing-head">
           <h3>Ingredients</h3>
           <div class="stepper" aria-label="Servings">
-            <button data-serv="-1" aria-label="Fewer">−</button><span><b>${n}</b> ${esc(r.unit && n === 1 ? r.unit : "servings")}</span><button data-serv="1" aria-label="More">＋</button>
+            <button data-serv="-1" aria-label="Fewer">${icon("minus", 16)}</button><span><b>${n}</b> ${esc(plural(r.unit || "serving", n))}</span><button data-serv="1" aria-label="More">${icon("plus", 16)}</button>
           </div>
         </div>
         <ul class="ingredients">${ingr}</ul>
-        <button class="btn primary wide" id="addAllIng">🛒 Add all ingredients to my list</button>
-        <h3>Steps</h3>
-        <ol class="steps big">${r.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>
-        ${r.tip ? `<p class="tip">💡 ${esc(r.tip)}</p>` : ""}
-        ${(r.swaps || []).length ? `<h3>Swaps</h3><div class="swaps">${r.swaps.map((s) => `<div class="swap"><span class="tag swap-tag">${esc(s.tag)}</span><p>${esc(s.text)}</p></div>`).join("")}</div>` : ""}
+        <button class="btn primary wide" id="addAllIng">${icon("plus", 16)}Add all ingredients to my list</button>
+        <h3>Method</h3>
+        <ol class="steps big">${r.steps.map((s) => `<li><span>${esc(s)}</span></li>`).join("")}</ol>
+        ${r.tip ? `<p class="tip"><b>Tip</b>${esc(r.tip)}</p>` : ""}
+        ${(r.swaps || []).length ? `<h3>Swaps</h3><div class="swaps">${r.swaps.map((s) => `<div class="swap${swapMatch(s) ? " match" : ""}"><span class="tag${swapMatch(s) ? " fit" : ""}">${esc(s.tag)}</span><p>${esc(s.text)}</p></div>`).join("")}</div>` : ""}
+        </div>
       </div>`;
     $$("[data-serv]", $("#sheetBody")).forEach((b) =>
-      b.addEventListener("click", () => openRecipe(r, Math.max(1, n + Number(b.dataset.serv)))));
+      b.addEventListener("click", () => openRecipe(r, Math.max(1, n + Number(b.dataset.serv)), { keepScroll: true })));
     $("#addAllIng").addEventListener("click", () =>
       addToList(r.ingredients.filter((i) => i.q || i.brand).map((i) => ({ name: `${fmtQty(i.q * f, i.u)} ${i.item}`.trim(), note: i.brand ? `${i.brand} · ${r.title}` : r.title }))));
     openSheet("#sheet");
+    panel.scrollTop = keep;
   }
 
   function openSheet(sel) {
     const s = $(sel);
+    const wasHidden = s.hidden;
     s.hidden = false;
     document.body.classList.add("no-scroll");
-    $(".sheet-panel", s).scrollTop = 0;
+    if (wasHidden) $(".sheet-panel", s).scrollTop = 0;
   }
   function closeSheets() {
     $$(".sheet").forEach((s) => (s.hidden = true));
@@ -323,31 +515,36 @@
 
   /* ---------------- shopping list ---------------- */
   const getList = () => store.get("list", []);
-  function saveList(list) { store.set("list", list); $("#listCount").textContent = list.filter((i) => !i.done).length; }
+  function saveList(list) {
+    store.set("list", list);
+    const c = list.filter((i) => !i.done).length;
+    $("#listCount").textContent = c;
+    $("#listCount").dataset.zero = String(!c);
+  }
   function addToList(items) {
     const list = getList();
     let added = 0;
     for (const it of items) if (!list.some((x) => x.name === it.name)) { list.push({ ...it, done: false }); added++; }
     saveList(list);
-    toast(added ? `Added ${added} item${added > 1 ? "s" : ""} to your list 🛒` : "Already on your list");
+    toast(added ? `Added ${added} item${added > 1 ? "s" : ""} to your list` : "Already on your list");
   }
   function renderList() {
     const list = getList();
     const body = $("#listBody");
-    if (!list.length) { body.innerHTML = `<div class="card empty"><p>Your list is empty. Tap <b>＋ List</b> on any brand or ingredient.</p></div>`; return; }
+    if (!list.length) { body.innerHTML = `<div class="card empty"><p>Your list is empty. Tap <b>List</b> on any brand, or add every ingredient from a recipe.</p></div>`; return; }
     body.innerHTML = `<div class="card"><ul class="shoplist">${list.map((i, idx) => `
       <li class="${i.done ? "done" : ""}"><label><input type="checkbox" data-li="${idx}" ${i.done ? "checked" : ""}><span><b>${esc(i.name)}</b>${i.note ? `<small>${esc(i.note)}</small>` : ""}</span></label>
-      <button class="x" data-del="${idx}" aria-label="Remove">✕</button></li>`).join("")}</ul>
-      <div class="row"><button class="btn" id="copyList">📋 Copy / share</button><button class="btn" id="clearDone">Clear checked</button><button class="btn danger" id="clearAll">Clear all</button></div></div>`;
+      <button class="x" data-del="${idx}" aria-label="Remove ${esc(i.name)}">${icon("x", 16)}</button></li>`).join("")}</ul>
+      <div class="row"><button class="btn primary" id="copyList">${icon("share", 16)}Share list</button><button class="btn quiet" id="clearDone">Clear checked</button><button class="btn danger" id="clearAll">Clear all</button></div></div>`;
     $$("[data-li]", body).forEach((c) => c.addEventListener("change", () => { const l = getList(); l[c.dataset.li].done = c.checked; saveList(l); renderList(); }));
     $$("[data-del]", body).forEach((b) => b.addEventListener("click", () => { const l = getList(); l.splice(b.dataset.del, 1); saveList(l); renderList(); }));
     $("#clearDone").addEventListener("click", () => { saveList(getList().filter((i) => !i.done)); renderList(); });
     $("#clearAll").addEventListener("click", () => { if (confirm("Clear your whole list?")) { saveList([]); renderList(); } });
     $("#copyList").addEventListener("click", async () => {
-      const text = "Non-Toxic Living shopping list\n" + getList().filter((i) => !i.done).map((i) => `☐ ${i.name}${i.note ? ` (${i.note})` : ""}`).join("\n");
+      const text = "Non-Toxic Living shopping list\n" + getList().filter((i) => !i.done).map((i) => `- ${i.name}${i.note ? ` (${i.note})` : ""}`).join("\n");
       try {
         if (navigator.share) await navigator.share({ title: "Shopping list", text });
-        else { await navigator.clipboard.writeText(text); toast("Copied!"); }
+        else { await navigator.clipboard.writeText(text); toast("Copied"); }
       } catch { /* user cancelled */ }
     });
   }
@@ -365,7 +562,33 @@
     return { hits, score: Math.max(0, Math.min(100, score)) };
   }
 
-  function renderAnalysis({ text, product }) {
+  // Each selected diet vs a label: ingredient words, Open Food Facts allergen/analysis tags and (keto) net carbs.
+  function labelDiet(text, product) {
+    const nutr = (product && product.nutriments) || {};
+    const allergens = (product && product.allergens_tags) || [];
+    const analysis = (product && product.ingredients_analysis_tags) || [];
+    return activeDiets().map((d) => {
+      const reasons = [];
+      const carbs = Number(nutr.carbohydrates_100g);
+      if (d.keto && product && Number.isFinite(carbs)) {
+        const net = Math.round(carbs - (Number(nutr.fiber_100g) || 0));
+        if (net > 10) reasons.push(`${net}g net carbs per 100g`);
+      } else {
+        dietConflicts(d, text).forEach((c) => reasons.push(c.word === c.name ? c.name : `${c.word} (${c.name})`));
+      }
+      (d.off.allergens || []).forEach((t) => {
+        const name = t.replace(/^en:/, "");
+        if (allergens.includes(t) && !reasons.some((r) => r.startsWith(name))) reasons.push(`listed allergen: ${name}`);
+      });
+      (d.off.analysis || []).forEach((t) => { if (analysis.includes(t)) reasons.push(`Open Food Facts marks it ${t.replace(/^en:/, "").replace(/-/g, " ")}`); });
+      return { d, reasons: [...new Set(reasons)] };
+    });
+  }
+
+  let lastAnalysis = null;
+  function renderAnalysis(input, { scroll = true } = {}) {
+    lastAnalysis = input;
+    const { text, product } = input;
     const { hits, score: base } = analyze(text);
     let score = base;
     const nova = product && product.nova_group;
@@ -374,102 +597,244 @@
     const seed = hits.filter((h) => h.type === "Seed oil");
     const groups = {};
     hits.forEach((h) => (groups[h.type] = groups[h.type] || []).push(h));
-    const sevIcon = { high: "🔴", moderate: "🟠", low: "🟡" };
 
     let seedHtml;
-    if (!seed.length) seedHtml = `<div class="verdict good">✅ <b>No seed oils found.</b></div>`;
+    if (!seed.length) seedHtml = `<div class="verdict good"><b>Seed oils</b>None found.</div>`;
     else {
       const worst = seed.some((s) => s.sev === "high") ? "high" : "moderate";
       seedHtml = `<div class="verdict ${worst === "high" ? "bad" : "meh"}">
-        <b>${worst === "high" ? "🔴" : "🟠"} Seed oils found:</b> ${seed.map((s) => esc(s.name)).join(", ")}<br>
-        ${seed.map((s) => `<small>• ${esc(s.name)} appears ${s.pos < 0.33 ? "<b>early in the list - a major ingredient</b>" : s.pos < 0.66 ? "in the middle of the list" : "near the end - a small amount"}. ${esc(s.why)}</small>`).join("<br>")}
+        <b>Seed oil found</b>${seed.map((s) => esc(s.name)).join(", ")}
+        ${seed.map((s) => `<small>${esc(s.name)} appears ${s.pos < 0.33 ? "<b>early in the list, so it's a major ingredient</b>" : s.pos < 0.66 ? "in the middle of the list" : "near the end, so it's a small amount"}. ${esc(s.why)}</small>`).join("")}
       </div>`;
     }
 
-    const matches = product ? searchIn(PRODUCTS, `${product.product_name || ""} ${(product.categories_tags || []).slice(-3).map((c) => c.replace(/^\w\w:/, "")).join(" ")}`, 15).slice(0, 1) : searchIn(PRODUCTS, text, 40).slice(0, 1);
+    const diet = labelDiet(text, product);
+    const dietHtml = diet.length ? `<div class="diet-panel" style="margin-top:0">${diet.map(({ d, reasons }) => reasons.length
+      ? `<div class="diet-row no"><b>Not ${esc(d.label.toLowerCase())}</b>${esc(reasons.join("; "))}.</div>`
+      : `<div class="diet-row fits"><b>Looks ${esc(d.label.toLowerCase())}</b>${d.id === "gluten-free" ? "No gluten ingredients found. For celiac, look for a certified gluten-free label." : d.keto && !(product && product.nutriments && product.nutriments.carbohydrates_100g != null) ? "No sugars or starches found in the ingredients. Check the carbs on the label." : `Nothing in the ingredients breaks ${esc(d.label.toLowerCase())}.`}</div>`).join("")}</div>` : "";
+
+    const sevLabel = { high: "High", moderate: "Moderate", low: "Low" };
+    const matches = product ? searchIn(PRODUCTS, `${product.product_name || ""} ${(product.categories_tags || []).slice(-3).map((c) => c.replace(/^\w\w:/, "")).join(" ")}`, 15).slice(0, 1) : [];
 
     $("#scanResult").innerHTML = `
       <div class="card result">
-        ${product ? `<div class="off-prod">${product.image_front_small_url ? `<img src="${esc(product.image_front_small_url)}" alt="">` : ""}<div><h3>${esc(product.product_name || "Unknown product")}</h3><p class="meta">${esc(product.brands || "")}</p></div></div>` : ""}
-        <div class="big-score ${g.cls}"><b>${score}</b><span>/100 · ${g.label}</span></div>
-        ${nova ? `<p class="meta">NOVA processing group: <b>${nova}</b>${nova === 4 ? " (ultra-processed, −10)" : ""}</p>` : ""}
-        ${seedHtml}
-        ${hits.length ? Object.entries(groups).map(([type, list]) => `
-          <h4>${esc(type)}</h4>
-          <ul class="flags">${list.map((h) => `<li class="sev-${h.sev}">${sevIcon[h.sev]} <b>${esc(h.name)}</b> - ${esc(h.why)}${h.eu ? `<br><small class="eu">🇪🇺 ${esc(h.eu)}</small>` : ""}</li>`).join("")}</ul>`).join("")
-          : `<div class="verdict good">🎉 No red-flag additives found. Nice pick!</div>`}
-        <details><summary>Ingredients analyzed</summary><p class="fine">${esc(text)}</p></details>
+        ${product ? `<div class="result-head">${product.image_front_small_url ? `<img src="${esc(product.image_front_small_url)}" alt="">` : ""}<div><p class="kicker" style="margin:0 0 2px">${esc(product.brands || "Scanned product")}</p><h3>${esc(product.product_name || "Unknown product")}</h3></div></div>` : `<p class="kicker">Your ingredient list</p>`}
+        <div class="big-score" data-grade="${g.cls}"><b>${score}</b><span>out of 100<strong>${g.label}${hits.length ? ` · ${hits.length} red flag${hits.length > 1 ? "s" : ""}` : ""}</strong></span></div>
+        <div class="bar" style="color:var(--${g.cls})"><i style="width:${Math.max(2, score)}%"></i></div>
+        ${nova ? `<p class="meta" style="margin-top:10px">NOVA processing group <b>${nova}</b>${nova === 4 ? " (ultra-processed, minus 10)" : ""}</p>` : ""}
       </div>
-      ${matches.length ? `<h2 class="sec-title">🔁 Cleaner alternatives</h2>${productCard(matches[0].it)}` : ""}`;
-    $("#scanResult").scrollIntoView({ behavior: "smooth", block: "start" });
+      ${dietHtml}
+      ${seedHtml}
+      ${hits.length ? `<h3 class="sec-title" style="margin-top:22px">What we flagged</h3><div class="card" style="padding-top:2px;padding-bottom:2px">${Object.entries(groups).map(([type, list]) => `
+          <h4>${esc(type)}</h4>
+          <ul class="flags">${list.map((h) => `<li><div><b>${esc(h.name)}</b><span class="sev sev-${h.sev}">${sevLabel[h.sev]}</span></div>${esc(h.why)}${h.eu ? `<span class="eu">In the EU: ${esc(h.eu)}</span>` : ""}</li>`).join("")}</ul>`).join("")}</div>`
+        : `<div class="verdict good"><b>Additives</b>No red-flag additives found. Nice pick.</div>`}
+      <details class="ingredients-analyzed"><summary>Ingredients we checked</summary><p class="fine">${esc(text)}</p></details>
+      ${matches.length ? `<h2 class="sec-title">Cleaner alternatives</h2>${productCard(matches[0].it)}` : ""}`;
+    if (scroll) $("#scanResult").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Shops print UPC-A (12 digits); Open Food Facts usually stores EAN-13 (a leading 0). Try both.
+  function barcodeVariants(code) {
+    const v = [code];
+    if (code.length === 12) v.push("0" + code);
+    if (code.length === 13 && code.startsWith("0")) v.push(code.slice(1));
+    if (code.length === 8) v.push(code.padStart(13, "0"));
+    return [...new Set(v)];
+  }
+  const OFF_FIELDS = "product_name,brands,image_front_small_url,ingredients_text,ingredients_text_en,nova_group,categories_tags,allergens_tags,ingredients_analysis_tags,nutriments";
+  async function fetchProduct(code) {
+    const hosts = ["https://world.openfoodfacts.org", "https://world.openbeautyfacts.org"];
+    for (const host of hosts) {
+      for (const c of barcodeVariants(code)) {
+        try {
+          const res = await fetch(`${host}/api/v2/product/${c}.json?fields=${OFF_FIELDS}`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data.status === 1 && data.product) return data.product;
+        } catch { /* offline or blocked: try the next */ }
+      }
+    }
+    return null;
   }
 
   async function lookupBarcode(code) {
     code = String(code || "").replace(/\D/g, "");
     if (code.length < 6) { toast("Enter the numbers under the barcode"); return; }
-    $("#scanResult").innerHTML = `<div class="card"><p class="loading">Looking up ${esc(code)}…</p></div>`;
+    $("#barcode").value = code;
+    $("#scanResult").innerHTML = `<div class="card"><p class="loading">Looking up ${esc(code)}...</p></div>`;
+    $("#scanResult").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!navigator.onLine) {
+      $("#scanResult").innerHTML = `<div class="card"><h3>You're offline</h3><p>Looking up a barcode needs a connection. You can still paste the ingredient list below.</p></div>`;
+      return;
+    }
+    const p = await fetchProduct(code);
+    if (!p) {
+      $("#scanResult").innerHTML = `<div class="card"><h3>Product not found</h3><p>Barcode ${esc(code)} isn't in the Open Food Facts database yet. Paste the ingredient list below instead, or <a href="https://world.openfoodfacts.org/cgi/product.pl" target="_blank" rel="noopener">add it to Open Food Facts</a> to help others.</p></div>`;
+      $("#pasteCard").open = true;
+      return;
+    }
+    const text = p.ingredients_text_en || p.ingredients_text;
+    if (!text) {
+      $("#scanResult").innerHTML = `<div class="card"><p class="kicker">${esc(p.brands || "Found it")}</p><h3>${esc(p.product_name || "Found it")}</h3><p>This product has no ingredient list in Open Food Facts yet. Paste the ingredients from the package below and we'll check them.</p></div>`;
+      $("#pasteCard").open = true;
+      return;
+    }
+    renderAnalysis({ text, product: p });
+  }
+
+  /* ---------------- barcode scanner ----------------
+   * Uses the phone's built-in BarcodeDetector where it exists (Android Chrome).
+   * iPhone Safari, Firefox and most desktops don't have one, so we fall back to
+   * ZXing (js/vendor/zxing.min.js), loaded only when the camera is first opened.
+   */
+  const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];
+  let scanStream = null;
+  let scanTimer = null;
+  let detectFn = null;
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error("load " + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function getDetector() {
+    if (detectFn) return detectFn;
+    if ("BarcodeDetector" in window) {
+      try {
+        const supported = await window.BarcodeDetector.getSupportedFormats();
+        const formats = FORMATS.filter((f) => supported.includes(f));
+        if (formats.length) {
+          const det = new window.BarcodeDetector({ formats });
+          detectFn = async (video) => { const c = await det.detect(video); return c.length ? c[0].rawValue : null; };
+          return detectFn;
+        }
+      } catch { /* fall through to ZXing */ }
+    }
+    if (!window.ZXing) await loadScript("js/vendor/zxing.min.js");
+    const Z = window.ZXing;
+    const hints = new Map();
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E]);
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    const reader = new Z.MultiFormatReader();
+    reader.setHints(hints);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    detectFn = async (video) => {
+      const w = video.videoWidth, h = video.videoHeight;
+      if (!w || !h) return null;
+      // Read the middle band of the frame (where the guide is) at up to 1000px wide: faster and sharper.
+      const scale = Math.min(1, 1000 / w);
+      const bandH = Math.round(h * 0.6);
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(bandH * scale);
+      ctx.drawImage(video, 0, Math.round((h - bandH) / 2), w, bandH, 0, 0, canvas.width, canvas.height);
+      try {
+        const bmp = new Z.BinaryBitmap(new Z.HybridBinarizer(new Z.HTMLCanvasElementLuminanceSource(canvas)));
+        return reader.decodeWithState(bmp).getText();
+      } catch { return null; } finally { reader.reset(); }
+    };
+    return detectFn;
+  }
+
+  async function startScan() {
+    const panel = $("#scanPanel");
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast(location.protocol === "https:" || location.hostname === "localhost" ? "This browser can't open the camera. Type the barcode number instead." : "The camera needs a secure (https) connection. Type the barcode number instead.");
+      $("#barcode").focus();
+      return;
+    }
+    $("#startScan").disabled = true;
     try {
-      const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json?fields=product_name,brands,image_front_small_url,ingredients_text,ingredients_text_en,nova_group,categories_tags`);
-      const data = await res.json();
-      if (data.status !== 1 || !data.product) throw new Error("not found");
-      const p = data.product;
-      const text = p.ingredients_text_en || p.ingredients_text;
-      if (!text) {
-        $("#scanResult").innerHTML = `<div class="card"><h3>${esc(p.product_name || "Found it")}</h3><p>This product has no ingredient list in Open Food Facts yet. Paste the ingredients from the package below and we'll check them.</p></div>`;
-        return;
-      }
-      renderAnalysis({ text, product: p });
-    } catch {
-      $("#scanResult").innerHTML = `<div class="card"><h3>Product not found</h3><p>It isn't in the Open Food Facts database yet. Paste the ingredient list instead - you can also <a href="https://world.openfoodfacts.org/cgi/product.pl" target="_blank" rel="noopener">add it to Open Food Facts</a> to help others.</p></div>`;
+      const [detect, stream] = await Promise.all([
+        getDetector(),
+        navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } })
+      ]);
+      scanStream = stream;
+      const video = $("#scanVideo");
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "");
+      await video.play();
+      panel.classList.add("live");
+      $("#scanHint").textContent = "Line up the barcode inside the frame";
+      setupTorch(stream.getVideoTracks()[0]);
+      let busy = false;
+      const tick = async () => {
+        if (!scanStream) return;
+        if (!busy && video.readyState >= 2) {
+          busy = true;
+          try {
+            const code = await detect(video);
+            if (code && /^\d{6,14}$/.test(code)) {
+              if (navigator.vibrate) navigator.vibrate(60);
+              stopScan();
+              lookupBarcode(code);
+              return;
+            }
+          } catch { /* frame not ready */ }
+          busy = false;
+        }
+        scanTimer = setTimeout(tick, 120);
+      };
+      tick();
+    } catch (err) {
+      stopScan();
+      const name = err && err.name;
+      toast(name === "NotAllowedError" ? "Camera permission is off. Allow camera access in Settings, or type the barcode."
+        : name === "NotFoundError" ? "No camera found. Type the barcode number instead."
+        : "Couldn't open the camera. Type the barcode number instead.");
+    } finally {
+      $("#startScan").disabled = false;
     }
   }
 
-  let scanStream = null;
-  async function startScan() {
-    if (!("BarcodeDetector" in window)) { toast("Live scanning isn't supported in this browser - type the barcode number instead."); $("#barcode").focus(); return; }
+  function setupTorch(track) {
+    const btn = $("#torchBtn");
+    btn.hidden = true;
+    btn.setAttribute("aria-pressed", "false");
     try {
-      const detector = new window.BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
-      scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      const video = $("#scanVideo");
-      video.srcObject = scanStream;
-      $("#scanner").hidden = false;
-      await video.play();
-      const tick = async () => {
-        if (!scanStream) return;
-        try {
-          const codes = await detector.detect(video);
-          if (codes.length) { const v = codes[0].rawValue; stopScan(); $("#barcode").value = v; lookupBarcode(v); return; }
-        } catch { /* frame not ready */ }
-        setTimeout(tick, 250);
+      const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+      if (!caps.torch) return;
+      btn.hidden = false;
+      btn.onclick = async () => {
+        const on = btn.getAttribute("aria-pressed") !== "true";
+        try { await track.applyConstraints({ advanced: [{ torch: on }] }); btn.setAttribute("aria-pressed", String(on)); } catch { /* not supported */ }
       };
-      tick();
-    } catch { toast("Couldn't open the camera"); stopScan(); }
+    } catch { /* no capabilities API */ }
   }
+
   function stopScan() {
+    clearTimeout(scanTimer);
     if (scanStream) scanStream.getTracks().forEach((t) => t.stop());
     scanStream = null;
-    $("#scanner").hidden = true;
+    const video = $("#scanVideo");
+    if (video) video.srcObject = null;
+    const panel = $("#scanPanel");
+    if (panel) panel.classList.remove("live");
   }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopScan(); });
 
   /* ---------------- shop local ---------------- */
   const LOCAL_SEARCHES = [
-    ["🥕", "farmers market"], ["🥩", "grass fed beef farm"], ["🥛", "raw milk farm"], ["🥚", "pasture raised eggs farm"],
-    ["🔪", "local butcher shop"], ["📦", "CSA farm share"], ["🍓", "u-pick farm"], ["🍯", "local honey beekeeper"],
-    ["🍞", "sourdough bakery"], ["🥬", "health food store"], ["🐔", "pasture raised chicken farm"], ["🐷", "pastured pork farm"]
+    "farmers market", "grass fed beef farm", "raw milk farm", "pasture raised eggs farm", "local butcher shop", "CSA farm share",
+    "u-pick farm", "local honey beekeeper", "sourdough bakery", "health food store", "pasture raised chicken farm", "pastured pork farm"
   ];
   function renderLocalChips(loc) {
     const where = loc ? ` near ${loc}` : " near me";
-    $("#localChips").innerHTML = LOCAL_SEARCHES.map(([e, t]) =>
-      `<a class="chip" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${enc(t + where)}">${e} ${esc(t)}</a>`).join("");
+    $("#localChips").innerHTML = LOCAL_SEARCHES.map((t) =>
+      `<a class="chip" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${enc(t + where)}">${esc(t[0].toUpperCase() + t.slice(1))}</a>`).join("");
   }
 
   const TYPE_LABEL = (t) =>
-    t.amenity === "marketplace" ? ["🥕", "Farmers market"] :
-    t.shop === "farm" ? ["🧑‍🌾", "Farm stand / farm shop"] :
-    t.shop === "butcher" ? ["🥩", "Butcher"] :
-    t.shop === "greengrocer" ? ["🥬", "Produce market"] :
-    t.shop === "health_food" ? ["🌿", "Health food store"] :
-    t.shop === "dairy" ? ["🥛", "Dairy"] : ["📍", "Local food"];
+    t.amenity === "marketplace" ? "Farmers market" :
+    t.shop === "farm" ? "Farm stand / farm shop" :
+    t.shop === "butcher" ? "Butcher" :
+    t.shop === "greengrocer" ? "Produce market" :
+    t.shop === "health_food" ? "Health food store" :
+    t.shop === "dairy" ? "Dairy" : "Local food";
 
   function miles(a, b) {
     const R = 3958.8, rad = Math.PI / 180;
@@ -477,12 +842,13 @@
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
   }
+  const radiusMeters = () => Number(($("#radius [aria-checked='true']") || {}).dataset?.r || 40000);
 
   async function findLocal(center, label) {
     const out = $("#localResults");
-    const r = Number($("#radius").value);
-    out.innerHTML = `<div class="card"><p class="loading">Finding farms & markets near ${esc(label)}…</p></div>`;
-    renderLocalChips(label);
+    const r = radiusMeters();
+    out.innerHTML = `<div class="card"><p class="loading">Finding farms and markets near ${esc(label)}...</p></div>`;
+    renderLocalChips(label === "you" ? "" : label);
     const around = `(around:${r},${center.lat},${center.lon})`;
     const q = `[out:json][timeout:25];(
       nwr["amenity"="marketplace"]${around};
@@ -499,29 +865,29 @@
       const places = data.elements.map((el) => {
         const pos = el.type === "node" ? { lat: el.lat, lon: el.lon } : el.center;
         const t = el.tags || {};
-        const [icon, type] = TYPE_LABEL(t);
-        return pos && { name: t.name || `Unnamed ${type.toLowerCase()}`, icon, type, t, pos, d: miles(center, pos) };
+        const type = TYPE_LABEL(t);
+        return pos && { name: t.name || `Unnamed ${type.toLowerCase()}`, type, t, pos, d: miles(center, pos) };
       }).filter(Boolean).sort((a, b) => a.d - b.d).slice(0, 60);
 
       if (!places.length) {
-        out.innerHTML = `<div class="card"><h3>No listings found on the open map near ${esc(label)}</h3><p>Small farms are often unlisted. Use the quick searches and directories below - they cover far more farms.</p></div>`;
+        out.innerHTML = `<div class="card"><h3>No listings found on the open map near ${esc(label)}</h3><p>Small farms are often unlisted. Use the quick searches and directories below. They cover far more farms.</p></div>`;
         return;
       }
       const types = [...new Set(places.map((p) => p.type))];
-      out.innerHTML = `<div class="card">
-        <h3>${places.length} places near ${esc(label)}</h3>
+      out.innerHTML = `<div class="subhead"><h3>Near ${esc(label)}</h3><span class="meta">${places.length} places</span></div>
         <div class="chips filter-chips"><button class="chip active" data-ft="">All</button>${types.map((t) => `<button class="chip" data-ft="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-        <ul class="places">${places.map((p) => {
+        <div class="card" style="padding-top:0;padding-bottom:0"><ul class="places" style="margin:0">${places.map((p) => {
           const addr = [p.t["addr:housenumber"], p.t["addr:street"], p.t["addr:city"]].filter(Boolean).join(" ");
           const site = p.t.website || p.t["contact:website"];
-          return `<li data-type="${esc(p.type)}"><span class="emoji">${p.icon}</span><div>
-            <b>${esc(p.name)}</b> <small class="meta">${esc(p.type)} · ${p.d.toFixed(1)} mi</small>
+          return `<li data-type="${esc(p.type)}"><span class="place-dot">${icon("pin", 18)}</span><div style="min-width:0">
+            <p class="kicker" style="margin:0">${esc(p.type)} · ${p.d.toFixed(1)} mi</p>
+            <b>${esc(p.name)}</b>
             ${addr ? `<div class="meta">${esc(addr)}</div>` : ""}
-            ${p.t.opening_hours ? `<div class="meta">🕒 ${esc(p.t.opening_hours)}</div>` : ""}
+            ${p.t.opening_hours ? `<div class="meta">${icon("clock", 13).replace('class="ic"', 'class="ic" style="display:inline;vertical-align:-2px"')} ${esc(p.t.opening_hours)}</div>` : ""}
             <div class="buy"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.pos.lat},${p.pos.lon}">Directions</a>${site ? `<a target="_blank" rel="noopener" href="${esc(site)}">Website</a>` : ""}<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${enc(p.name + " " + (p.t["addr:city"] || label))}">Reviews</a></div>
           </div></li>`;
-        }).join("")}</ul>
-        <p class="fine">Map data © OpenStreetMap contributors. Always call ahead - hours change seasonally.</p></div>`;
+        }).join("")}</ul></div>
+        <p class="fine">Map data © OpenStreetMap contributors. Always call ahead; hours change seasonally.</p>`;
       $$("[data-ft]", out).forEach((b) => b.addEventListener("click", () => {
         $$("[data-ft]", out).forEach((x) => x.classList.toggle("active", x === b));
         $$(".places li", out).forEach((li) => (li.hidden = !!b.dataset.ft && li.dataset.type !== b.dataset.ft));
@@ -546,7 +912,8 @@ Standards you apply:
 - Prefer organic, grass-fed & grass-finished, pasture-raised, US-raised meat; local farms; real sourdough; organic or Italian pasta.
 - Only recommend real brands sold in the US. If you are not sure a specific product is still seed-oil free, say "check label" in the reason. Never invent brands.
 - If no widely available seed-oil-free product exists in a category, say so honestly in leastBad and rank the least-bad options with a lower score.
-- Recipes: exact quantities, short easy steps, nutrition per serving estimated from USDA values, and swaps (always include vegetarian, plus dairy-free / gluten-free / higher protein where relevant).`;
+- Recipes: exact quantities, short easy steps, nutrition per serving estimated from USDA values, and swaps (always include vegetarian, plus dairy-free / gluten-free / higher protein where relevant).
+- Use no emoji in any text field.`;
 
   const RECIPE_SCHEMA = {
     type: "object", additionalProperties: false,
@@ -574,12 +941,14 @@ Standards you apply:
   let AnthropicCtor = null;
   async function askClaude(kind, query) {
     const apiKey = store.get("apiKey", "");
-    if (!apiKey) throw new Error("Add your Anthropic API key in ⚙️ Settings first.");
+    if (!apiKey) throw new Error("Add your Anthropic API key in Settings first.");
     if (!AnthropicCtor) AnthropicCtor = (await import("https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@0.131.0/+esm")).default;
     const client = new AnthropicCtor({ apiKey, dangerouslyAllowBrowser: true });
+    const diets = activeDiets();
+    const dietLine = diets.length ? ` It must be ${dietLabels(diets).toLowerCase()}.` : "";
     const prompt = kind === "recipe"
-      ? `Create a clean, non-toxic, seed-oil-free recipe for: "${query}". Make it taste like the real thing. Recommend a specific clean brand for each store-bought ingredient (use "organic ___" for produce).`
-      : `List the cleanest non-toxic, seed-oil-free brands to buy for: "${query}". Give 3-6 picks scored 0-100 (Yuka-style, 100 = cleanest) and 1-3 common brands to avoid. Leave leastBad empty unless clean options are genuinely hard to find.`;
+      ? `Create a clean, non-toxic, seed-oil-free recipe for: "${query}".${dietLine} Make it taste like the real thing. Recommend a specific clean brand for each store-bought ingredient (use "organic ___" for produce).`
+      : `List the cleanest non-toxic, seed-oil-free brands to buy for: "${query}".${dietLine} Give 3-6 picks scored 0-100 (Yuka-style, 100 = cleanest) and 1-3 common brands to avoid. Leave leastBad empty unless clean options are genuinely hard to find.`;
     const msg = await client.beta.messages.create({
       model: "claude-opus-5-5",
       max_tokens: 16000,
@@ -598,9 +967,10 @@ Standards you apply:
   function aiBox(query, prominent) {
     const hasKey = !!store.get("apiKey", "");
     return `<div class="card ai-box ${prominent ? "prominent" : ""}">
-      <h3>✨ ${prominent ? "Get it with AI" : "Want more options?"}</h3>
-      <p>${hasKey ? `Generate a clean recipe or brand list for <b>"${esc(query)}"</b>.` : `Add your own Anthropic API key in <a href="#" id="aiSettings">⚙️ Settings</a> to generate a clean recipe or brand list for <i>any</i> food.`}</p>
-      ${hasKey ? `<div class="row"><button class="btn primary" data-ai="recipe">👩‍🍳 Clean recipe</button><button class="btn" data-ai="product">🛍️ Clean brands</button></div><div class="ai-out"></div>` : ""}
+      <p class="kicker">${prominent ? "Not in our guide yet" : "Want more options?"}</p>
+      <h3>${prominent ? "Get it with AI" : "Ask AI for more"}</h3>
+      <p>${hasKey ? `Generate a clean recipe or brand list for <b>"${esc(query)}"</b>.` : `Add your own Anthropic API key in <a href="#" id="aiSettings">Settings</a> to generate a clean recipe or brand list for <i>any</i> food.`}</p>
+      ${hasKey ? `<div class="row"><button class="btn primary" data-ai="recipe">Clean recipe</button><button class="btn" data-ai="product">Clean brands</button></div><div class="ai-out"></div>` : ""}
     </div>`;
   }
   function bindAiBox(root, query) {
@@ -610,7 +980,7 @@ Standards you apply:
       const outEl = $(".ai-out", root);
       const kind = b.dataset.ai;
       $$("[data-ai]", root).forEach((x) => (x.disabled = true));
-      outEl.innerHTML = `<p class="loading">✨ Creating a clean ${kind === "recipe" ? "recipe" : "brand guide"} for "${esc(query)}"…</p>`;
+      outEl.innerHTML = `<p class="loading">Creating a clean ${kind === "recipe" ? "recipe" : "brand guide"} for "${esc(query)}"...</p>`;
       try {
         const data = await askClaude(kind, query);
         if (kind === "recipe") {
@@ -622,7 +992,7 @@ Standards you apply:
           outEl.innerHTML = productCard({ ...data, cat: "AI suggestion" }, { ai: true });
         }
       } catch (err) {
-        outEl.innerHTML = `<p class="error">⚠️ ${esc(err && err.status === 401 ? "That API key was rejected - check it in Settings." : err.message || "Something went wrong.")}</p>`;
+        outEl.innerHTML = `<p class="error">${esc(err && err.status === 401 ? "That API key was rejected. Check it in Settings." : err.message || "Something went wrong.")}</p>`;
       } finally {
         $$("[data-ai]", root).forEach((x) => (x.disabled = false));
       }
@@ -636,10 +1006,11 @@ Standards you apply:
 
   /* ---------------- init ---------------- */
   function init() {
-    const quick = ["mayonnaise", "cookies", "rice krispies", "grass-fed beef", "potato chips", "ice cream", "peanut butter", "wool blanket", "cotton sheets", "toothpaste", "pizza", "cooking oil"];
-    $("#quickChips").innerHTML = quick.map((q) => `<button class="chip" data-search="${esc(q)}">${esc(q)}</button>`).join("");
+    const quick = ["mayonnaise", "cookies", "grass-fed beef", "potato chips", "ice cream", "peanut butter", "canned tuna", "hot sauce", "coffee", "maple syrup", "toothpaste", "wool blanket"];
+    $("#quickChips").innerHTML = quick.map((q) => `<button class="chip" data-search="${esc(q)}">${esc(q[0].toUpperCase() + q.slice(1))}</button>`).join("");
+    renderDietBars();
 
-    $("#searchForm").addEventListener("submit", (e) => { e.preventDefault(); runSearch($("#q").value); });
+    $("#searchForm").addEventListener("submit", (e) => { e.preventDefault(); $("#q").blur(); runSearch($("#q").value); });
     $("#recipeFilter").addEventListener("input", (e) => renderRecipeGrid(e.target.value));
     $("#clothingFilter").addEventListener("input", (e) => renderClothing(e.target.value));
 
@@ -657,6 +1028,13 @@ Standards you apply:
       renderAnalysis({ text: $("#ingredientsInput").value });
     });
 
+    $$("#radius [data-r]").forEach((b) => b.addEventListener("click", () => {
+      $$("#radius [data-r]").forEach((x) => x.setAttribute("aria-checked", String(x === b)));
+      store.set("radius", b.dataset.r);
+    }));
+    const savedR = store.get("radius", "");
+    if (savedR) $$("#radius [data-r]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.r === savedR)));
+
     $("#locForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const q = $("#locInput").value.trim();
@@ -669,7 +1047,7 @@ Standards you apply:
       if (!navigator.geolocation) { toast("Location isn't available"); return; }
       navigator.geolocation.getCurrentPosition(
         (p) => findLocal({ lat: p.coords.latitude, lon: p.coords.longitude }, "you"),
-        () => toast("Location permission denied - type a ZIP instead"),
+        () => toast("Location permission is off. Type a ZIP code instead."),
         { timeout: 10000 }
       );
     });
@@ -682,7 +1060,7 @@ Standards you apply:
     $("#saveKey").addEventListener("click", () => {
       const k = $("#apiKey").value.trim();
       if (!k) { toast("Paste a key first"); return; }
-      store.set("apiKey", k); closeSheets(); toast("Key saved on this device ✨");
+      store.set("apiKey", k); closeSheets(); toast("Key saved on this device");
       if ($("#q").value) runSearch($("#q").value);
     });
     $("#clearKey").addEventListener("click", () => { store.del("apiKey"); $("#apiKey").value = ""; toast("Key removed"); });

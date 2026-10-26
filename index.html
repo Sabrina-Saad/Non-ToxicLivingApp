@@ -5,24 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Non-Toxic Living</title>
   <meta name="description" content="Find non-toxic, seed-oil-free brands, clean recipes, local farms and 100% natural-fiber clothing. Like Yuka - but it tells you what to buy instead.">
-  <meta name="theme-color" content="#2f5d46">
+  <meta name="theme-color" content="#F5FAF7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0D1C16" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
   <header class="topbar">
-    <button class="brand" data-go="search" aria-label="Home">
-      <span class="brand-mark" aria-hidden="true">🌿</span>
-      <span class="brand-name">Non-Toxic <em>Living</em></span>
+    <button class="brand" data-go="search" aria-label="Non-Toxic Living home">
+      <span class="brand-name">non-toxic</span><span class="brand-sub">living</span>
     </button>
     <div class="top-actions">
-      <button class="icon-btn" id="openList" aria-label="Shopping list">🛒 <span id="listCount" class="pill-count">0</span></button>
-      <button class="icon-btn" id="openSettings" aria-label="Settings">⚙️</button>
+      <button class="icon-btn" id="openList" aria-label="Shopping list"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span id="listCount" class="pill-count" data-zero="true">0</span></button>
+      <button class="icon-btn" id="openSettings" aria-label="Settings"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
     </div>
   </header>
 
@@ -30,129 +32,164 @@
     <!-- ============ SEARCH ============ -->
     <section class="view active" id="view-search" aria-label="Search">
       <div class="hero">
-        <h1>What are you <span class="hl">craving</span> or shopping for?</h1>
-        <p class="sub">Search any food, product, or fabric - we'll show you clean, seed-oil-free brands, where to buy them, and recipes to make it yourself.</p>
+        <p class="kicker">The clean shopping guide</p>
+        <h1>What are you craving or shopping for?</h1>
+        <p class="sub">Clean, seed-oil-free brands, where to buy them, and recipes to make it yourself.</p>
         <form id="searchForm" class="searchbar" role="search">
-          <span aria-hidden="true">🔎</span>
-          <input id="q" type="search" autocomplete="off" placeholder="Try “mayonnaise”, “cookies”, “rice krispies”, “beef”, “wool blanket”…" aria-label="Search">
+          <svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <label for="q" class="visually-hidden">Search foods, products or fabrics</label>
+          <input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Mayonnaise, cookies, wool blanket">
           <button type="submit" class="btn primary">Search</button>
         </form>
+        <div class="diet" data-diet-bar></div>
         <div class="chips" id="quickChips"></div>
       </div>
       <div id="results"></div>
+      <nav class="footer-links" aria-label="More">
+        <a href="#" data-go="about">About us</a>
+        <a href="#" data-go="about">Sources</a>
+      </nav>
     </section>
 
     <!-- ============ RECIPES ============ -->
     <section class="view" id="view-recipes" aria-label="Recipes">
       <div class="page-head">
-        <h2>Clean Recipes</h2>
+        <p class="kicker">Clean recipes</p>
+        <h2>Make it yourself.</h2>
         <p class="sub">Exact ingredients, the cleanest brands to buy, nutrition per serving, and swaps for every diet.</p>
-        <input id="recipeFilter" class="filter" type="search" placeholder="Filter recipes… (cookies, tacos, protein)">
+        <label for="recipeFilter" class="visually-hidden">Filter recipes</label>
+        <input id="recipeFilter" class="filter" type="search" placeholder="Filter recipes: cookies, tacos, protein">
+        <div class="diet" data-diet-bar></div>
       </div>
-      <div id="recipeGrid" class="grid"></div>
+      <div id="recipeGrid"></div>
     </section>
 
     <!-- ============ LABEL CHECK ============ -->
     <section class="view" id="view-scan" aria-label="Label check">
       <div class="page-head">
-        <h2>Label Check</h2>
-        <p class="sub">Scan a barcode or paste an ingredient list. We flag seed oils, dyes, and additives - and tell you how bad each one is.</p>
+        <p class="kicker">Label check</p>
+        <h2>Scan the barcode.</h2>
+        <p class="sub">We flag seed oils, dyes and additives, how bad each one is, and whether it fits your diet.</p>
       </div>
-      <div class="card scan-card">
-        <h3>📷 Scan or type a barcode</h3>
-        <div class="row">
-          <input id="barcode" inputmode="numeric" placeholder="e.g. 0041000001826" aria-label="Barcode">
+
+      <div class="scan-panel" id="scanPanel">
+        <video id="scanVideo" playsinline muted autoplay></video>
+        <div class="scan-frame" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="scan-idle">
+          <p>Point your camera at the barcode on the back of the package.</p>
+        </div>
+        <button class="btn scan-idle" id="startScan"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg> Start camera</button>
+        <p class="scan-live" id="scanHint">Line up the barcode inside the frame</p>
+        <div class="scan-actions scan-live">
+          <button class="round" id="torchBtn" aria-label="Flashlight" aria-pressed="false" hidden><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8l-1 6H9L8 3Z"/><path d="M9 9v10a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V9"/><path d="M12 13v2"/></svg></button>
+          <button class="round" id="stopScan" aria-label="Stop camera"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        </div>
+      </div>
+
+      <div class="or-row">
+        <label for="barcode">Or type the numbers under the barcode</label>
+        <div class="loc-row">
+          <input id="barcode" class="pill-input" inputmode="numeric" autocomplete="off" placeholder="0041000001826">
           <button class="btn primary" id="lookupBarcode">Look up</button>
-          <button class="btn" id="startScan">Scan</button>
         </div>
-        <div id="scanner" class="scanner" hidden>
-          <video id="scanVideo" playsinline muted></video>
-          <button class="btn small" id="stopScan">Stop camera</button>
-        </div>
-        <p class="fine">Product data from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, the free, open food database.</p>
       </div>
-      <div class="card scan-card">
-        <h3>📝 Paste an ingredient list</h3>
-        <textarea id="ingredientsInput" rows="5" placeholder="Paste ingredients from the back of the package…"></textarea>
+
+      <div class="diet" data-diet-bar data-diet-title="Check it against my diet"></div>
+
+      <div id="scanResult"></div>
+
+      <details class="card" id="pasteCard">
+        <summary class="subhead" style="margin:0;cursor:pointer;list-style:none"><h3>Paste an ingredient list</h3><span class="meta">For products without a barcode</span></summary>
+        <label for="ingredientsInput" class="visually-hidden">Ingredient list</label>
+        <textarea id="ingredientsInput" rows="5" placeholder="Paste the ingredients from the back of the package" style="margin-top:12px"></textarea>
         <div class="row">
           <button class="btn primary" id="analyzeBtn">Check ingredients</button>
-          <button class="btn" id="sampleBtn">Try an example</button>
+          <button class="btn quiet" id="sampleBtn">Try an example</button>
         </div>
-      </div>
-      <div id="scanResult"></div>
+      </details>
+
       <div class="card">
-        <h3>🫒 The seed oil scale - from best to worst</h3>
+        <p class="kicker">The seed oil scale</p>
+        <h3>From best to worst</h3>
         <ol class="oil-scale">
-          <li class="g-best"><b>Best:</b> beef tallow, ghee, butter, lard, coconut oil, extra-virgin olive oil, avocado oil</li>
-          <li class="g-ok"><b>Okay in a pinch:</b> high-oleic sunflower or safflower oil (more stable, less omega-6), palm oil</li>
-          <li class="g-poor"><b>Avoid:</b> canola/rapeseed, sunflower, safflower (regular), rice bran, grapeseed, sesame (flavoring amounts are minor)</li>
-          <li class="g-bad"><b>Worst:</b> soybean, corn, cottonseed, "vegetable oil", and anything hydrogenated or interesterified</li>
+          <li class="g-best"><span><b>Best:</b> beef tallow, ghee, butter, lard, coconut oil, extra-virgin olive oil, avocado oil</span></li>
+          <li class="g-ok"><span><b>Okay in a pinch:</b> high-oleic sunflower or safflower oil (more stable, less omega-6), palm oil</span></li>
+          <li class="g-poor"><span><b>Avoid:</b> canola/rapeseed, sunflower, safflower (regular), rice bran, grapeseed, sesame (flavoring amounts are minor)</span></li>
+          <li class="g-bad"><span><b>Worst:</b> soybean, corn, cottonseed, "vegetable oil", and anything hydrogenated or interesterified</span></li>
         </ol>
-        <p class="fine">Tip: ingredients are listed by weight. If a seed oil is the last ingredient, it's a small amount - that's the "least bad" choice when nothing clean exists.</p>
+        <p class="fine">Ingredients are listed by weight. If a seed oil is the last ingredient, it's a small amount - the "least bad" choice when nothing clean exists.</p>
       </div>
+      <p class="fine">Product data from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, the free, open food database.</p>
     </section>
 
     <!-- ============ SHOP LOCAL ============ -->
     <section class="view" id="view-local" aria-label="Shop local">
       <div class="page-head">
-        <h2>Shop Local · Real Food, Real Farmers</h2>
-        <p class="sub">Find farmers markets, farms, butchers and health food stores near you.</p>
+        <p class="kicker">Shop local</p>
+        <h2>Real food, from real farmers.</h2>
+        <p class="sub">Farmers markets, farms, butchers and health food stores near you.</p>
       </div>
-      <div class="card">
-        <form id="locForm" class="row">
-          <input id="locInput" placeholder="ZIP code or city, state" aria-label="Location">
-          <button class="btn primary" type="submit">Find near me</button>
-          <button class="btn" type="button" id="useGeo">📍 Use my location</button>
-        </form>
-        <label class="radius">Within <select id="radius"><option value="16000">10 miles</option><option value="40000" selected>25 miles</option><option value="80000">50 miles</option></select></label>
-      </div>
-      <div id="localResults"></div>
-      <div class="card">
-        <h3>🔎 Quick searches near you</h3>
-        <div class="chips" id="localChips"></div>
-      </div>
-      <div class="card">
-        <h3>📚 Trusted farm directories</h3>
-        <ul class="links">
-          <li><a href="https://www.usdalocalfoodportal.com/" target="_blank" rel="noopener">USDA Local Food Directories</a> - farmers markets, CSAs, on-farm stores</li>
-          <li><a href="https://www.localharvest.org/" target="_blank" rel="noopener">LocalHarvest</a> - farms, CSAs, markets across the US</li>
-          <li><a href="https://www.eatwild.com/" target="_blank" rel="noopener">Eatwild</a> - grass-fed beef, lamb, dairy & pastured poultry farms by state</li>
-          <li><a href="https://www.americangrassfed.org/" target="_blank" rel="noopener">American Grassfed Association</a> - certified farms (animals must be born & raised in the US)</li>
-          <li><a href="https://www.realmilk.com/real-milk-finder/" target="_blank" rel="noopener">Real Milk Finder</a> - raw & grass-fed dairy farms (check your state's laws)</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>🥩 How to buy real beef from a farmer</h3>
-        <ol class="steps">
+      <form id="locForm">
+        <div class="loc-row">
+          <label for="locInput" class="visually-hidden">ZIP code or city</label>
+          <input id="locInput" class="pill-input" placeholder="ZIP code or city, state" autocomplete="postal-code" enterkeyhint="search">
+          <button class="round-btn" type="button" id="useGeo" aria-label="Use my location"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+          <button class="btn primary" type="submit">Find</button>
+        </div>
+        <div class="seg" role="radiogroup" aria-label="Distance" id="radius">
+          <button type="button" role="radio" aria-checked="false" data-r="16000">10 mi</button>
+          <button type="button" role="radio" aria-checked="true" data-r="40000">25 mi</button>
+          <button type="button" role="radio" aria-checked="false" data-r="80000">50 mi</button>
+        </div>
+      </form>
+      <div id="localResults" style="margin-top:16px"></div>
+      <h3 class="sec-title">Quick searches</h3>
+      <div class="chips" id="localChips"></div>
+      <div class="card dark" style="margin-top:22px">
+        <p class="kicker">Buying beef from a farmer</p>
+        <h3>Five things to ask.</h3>
+        <ol>
           <li>Ask: <b>"Is it 100% grass-fed AND grass-finished?"</b> Many "grass-fed" cattle are grain-finished.</li>
           <li>Ask: <b>"Were the animals born and raised on your farm or in the US?"</b></li>
           <li>Ask: <b>"Any growth hormones, routine antibiotics, or grain feed?"</b> A good farmer happily explains their practices.</li>
           <li>Buy in bulk: a <b>quarter cow</b> (~100 lbs of meat) fits in a chest freezer and is often cheaper per pound than grocery-store grass-fed.</li>
-          <li>In stores, look for: <b>"Product of USA"</b> (since Jan 1, 2026 it must mean born, raised, slaughtered & processed in the US), <b>American Grassfed</b> certification, or the farm name on the package.</li>
+          <li>In stores, look for <b>"Product of USA"</b> (since Jan 1, 2026 it must mean born, raised, slaughtered & processed in the US), <b>American Grassfed</b> certification, or the farm name on the package.</li>
         </ol>
+      </div>
+      <h3 class="sec-title">Trusted farm directories</h3>
+      <div class="card" style="padding-top:4px;padding-bottom:4px">
+        <ul class="list-links">
+          <li><a href="https://www.usdalocalfoodportal.com/" target="_blank" rel="noopener"><span>USDA Local Food Directories<small>Farmers markets, CSAs, on-farm stores</small></span><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></li>
+          <li><a href="https://www.localharvest.org/" target="_blank" rel="noopener"><span>LocalHarvest<small>Farms, CSAs and markets across the US</small></span><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></li>
+          <li><a href="https://www.eatwild.com/" target="_blank" rel="noopener"><span>Eatwild<small>Grass-fed beef, lamb, dairy and pastured poultry by state</small></span><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></li>
+          <li><a href="https://www.americangrassfed.org/" target="_blank" rel="noopener"><span>American Grassfed Association<small>Certified farms, animals born and raised in the US</small></span><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></li>
+          <li><a href="https://www.realmilk.com/real-milk-finder/" target="_blank" rel="noopener"><span>Real Milk Finder<small>Raw and grass-fed dairy farms (check your state's laws)</small></span><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></li>
+        </ul>
       </div>
     </section>
 
     <!-- ============ CLOTHING ============ -->
     <section class="view" id="view-clothing" aria-label="Clothing and home">
       <div class="page-head">
-        <h2>Clothing & Home · No Polyester</h2>
-        <p class="sub">100% cotton, wool, linen and silk - clothes, sheets, blankets, towels and mattresses.</p>
-        <input id="clothingFilter" class="filter" type="search" placeholder="Search… (blanket, jeans, underwear, sheets)">
+        <p class="kicker">Clothing &amp; home</p>
+        <h2>No polyester.</h2>
+        <p class="sub">100% cotton, wool, linen and silk: clothes, sheets, blankets, towels and mattresses.</p>
+        <label for="clothingFilter" class="visually-hidden">Search clothing</label>
+        <input id="clothingFilter" class="filter" type="search" placeholder="Blanket, jeans, underwear, sheets">
       </div>
       <div id="clothingList"></div>
       <div class="card">
-        <h3>🧵 Fiber cheat sheet</h3>
+        <p class="kicker">Fiber cheat sheet</p>
+        <h3>What to look for on the tag</h3>
         <div id="fiberList" class="fibers"></div>
       </div>
     </section>
 
-    <!-- ============ ABOUT ============ -->
     <section class="view" id="view-about" aria-label="About us">
       <article class="about">
         <div class="about-hero">
           <p class="kicker">About Us</p>
-          <h2>America is poisoning its people.<br><span class="hl">We're making it easier to opt out.</span></h2>
+          <h2>America is poisoning its people.<br><span>We're making it easier to opt out.</span></h2>
           <p class="lede">Ever notice how people come back from Europe saying they ate bread, pasta, cheese and gelato every single day - and still <b>lost weight</b>? It's not magic. Part of it is walking more and eating smaller portions. But a big part of it is <b>what's actually in the food</b>.</p>
         </div>
 
@@ -168,7 +205,7 @@
           <p>Compare McDonald's fries: in the UK they're potatoes, oil, dextrose and salt. The US version adds "natural beef flavor" (with hydrolyzed wheat and milk), sodium acid pyrophosphate, and fryer oil containing TBHQ and dimethylpolysiloxane (an anti-foaming silicone).</p>
           <div class="table-wrap">
             <table class="compare">
-              <thead><tr><th>Ingredient / practice</th><th>🇺🇸 United States</th><th>🇪🇺 European Union</th></tr></thead>
+              <thead><tr><th>Ingredient / practice</th><th>United States</th><th>European Union</th></tr></thead>
               <tbody>
                 <tr><td><b>Titanium dioxide</b> (whitener in candy, frosting)</td><td class="bad">Allowed</td><td class="good">Banned since 2022 - EFSA couldn't rule out DNA damage <a href="#src-efsa-tio2" class="cite">[5]</a></td></tr>
                 <tr><td><b>Potassium bromate</b> (bread flour)</td><td class="bad">Allowed (California ban starts 2027 <a href="#src-ab418" class="cite">[6]</a>)</td><td class="good">Banned - IARC "possible carcinogen"</td></tr>
@@ -188,11 +225,11 @@
         <section>
           <h3>They literally tell you on the label.</h3>
           <div class="callout">
-            <p class="warn-label">⚠️ WARNING: This product can expose you to chemicals including acrylamide, which is known to the State of California to cause cancer.</p>
+            <p class="warn-label">WARNING: This product can expose you to chemicals including acrylamide, which is known to the State of California to cause cancer.</p>
             <p>That's a real <b>California Prop 65</b> warning - you'll see it on coffee, chips, fries and cookware <a href="#src-p65" class="cite">[9]</a>. The chemicals are legal to sell. The state just requires them to tell you.</p>
           </div>
           <div class="callout">
-            <p class="warn-label">⚠️ Keep out of reach of children under 6 years of age. If more than used for brushing is accidentally swallowed, get medical help or contact a Poison Control Center right away.</p>
+            <p class="warn-label">Keep out of reach of children under 6 years of age. If more than used for brushing is accidentally swallowed, get medical help or contact a Poison Control Center right away.</p>
             <p>That's the <b>FDA-required warning on fluoride toothpaste</b> <a href="#src-cfr355" class="cite">[10]</a>. Read the back of your tube.</p>
           </div>
         </section>
@@ -201,7 +238,7 @@
           <h3>Fluoride & your pineal gland</h3>
           <p>Your <b>pineal gland</b> is a tiny gland in the center of your brain that makes <b>melatonin</b> - the hormone that runs your sleep cycle. In 2001, researcher Jennifer Luke found that fluoride <b>accumulates in the pineal gland</b> - at higher concentrations than in bone - as it calcifies with age <a href="#src-luke" class="cite">[11]</a>. Her earlier animal research found fluoride lowered melatonin output in gerbils.</p>
           <p>In 2024 the US government's own <b>National Toxicology Program</b> concluded, with moderate confidence, that fluoride exposure above 1.5 mg/L is associated with <b>lower IQ in children</b> <a href="#src-ntp" class="cite">[12]</a>. That same year a federal judge ordered the EPA to take regulatory action on fluoride in drinking water. In 2025, <b>Utah and Florida</b> became the first states to ban adding fluoride to public water.</p>
-          <p class="honest">📌 Being straight with you: US water is fluoridated at 0.7 mg/L, and the NTP said there wasn't enough data to know whether that lower level affects IQ. The pineal research shows fluoride <i>builds up</i> there - whether that harms sleep or health in humans hasn't been proven yet. We think "not proven safe" is reason enough to choose a <a href="#" data-search="toothpaste">fluoride-free toothpaste</a> and a <a href="#" data-search="water filter">reverse-osmosis filter</a>.</p>
+          <p class="honest"><b>Being straight with you</b>US water is fluoridated at 0.7 mg/L, and the NTP said there wasn't enough data to know whether that lower level affects IQ. The pineal research shows fluoride <i>builds up</i> there - whether that harms sleep or health in humans hasn't been proven yet. We think "not proven safe" is reason enough to choose a <a href="#" data-search="toothpaste">fluoride-free toothpaste</a> and a <a href="#" data-search="water filter">reverse-osmosis filter</a>.</p>
         </section>
 
         <section>
@@ -214,14 +251,14 @@
           <h3>Testosterone, fertility & the chemicals around us</h3>
           <p>American men have less testosterone than men the same age did a generation ago - a large study found levels falling by roughly 1% a year, independent of age <a href="#src-travison" class="cite">[16]</a>. Global sperm counts have dropped by more than 50% since the 1970s <a href="#src-levine" class="cite">[17]</a>.</p>
           <p>The best-studied culprits are <b>endocrine disruptors</b> - chemicals that mimic or block hormones - like phthalates and BPA in plastics, synthetic fragrance and food packaging. That's why this app cares about what's in your food <i>and</i> what touches your skin.</p>
-          <p class="honest">📌 Being straight with you: we haven't found a human study proving Red 40 itself lowers testosterone. Red 40's documented harm is to kids' behavior. Plastics and hormone-disrupting chemicals are the bigger, better-proven threat to hormones - and polyester <i>is</i> plastic.</p>
+          <p class="honest"><b>Being straight with you</b>we haven't found a human study proving Red 40 itself lowers testosterone. Red 40's documented harm is to kids' behavior. Plastics and hormone-disrupting chemicals are the bigger, better-proven threat to hormones - and polyester <i>is</i> plastic.</p>
         </section>
 
         <section>
           <h3>Polyester is plastic. You're wearing it.</h3>
           <p>In the early 1990s, Egyptian urologist Ahmed Shafik had men wear polyester slings against the scrotum. Within months, <b>sperm counts dropped to zero</b> - he literally tested it as a male contraceptive. After they stopped wearing polyester, <b>sperm production returned to normal</b> <a href="#src-shafik" class="cite">[18]</a>. His studies in dogs found the same effect, which he linked to the electrostatic charge polyester creates against the skin.</p>
           <p>Since then, scientists have found microplastics in human <b>placentas</b> <a href="#src-ragusa" class="cite">[19]</a> and in <b>every human testicle sample tested</b> in a 2024 study <a href="#src-hu" class="cite">[20]</a>. Polyester clothing sheds microfibers every time you wear and wash it, and in 2022 the Center for Environmental Health found BPA in polyester-spandex socks from major brands. Documentaries have pushed this into the mainstream - couples swapping polyester bedding and underwear for natural fibers - and the research behind it goes back decades.</p>
-          <p class="honest">📌 Being straight with you: Shafik's studies were small and haven't been repeated at scale. But natural fibers have no downside - so why take the risk? See the <a href="#" data-go="clothing">Clothing tab</a>.</p>
+          <p class="honest"><b>Being straight with you</b>Shafik's studies were small and haven't been repeated at scale. But natural fibers have no downside - so why take the risk? See the <a href="#" data-go="clothing">Clothing tab</a>.</p>
         </section>
 
         <section>
@@ -233,7 +270,7 @@
           <h3>Why I built this</h3>
           <p>Honestly? It makes me sad. It makes me sad that families in Europe are protected from ingredients that we're fed every day without warning. That our kids are eating dyes another country puts a warning label on. That "Product of USA" beef could come from the other side of the world. That the "soft" blanket you wrap your baby in is plastic.</p>
           <p>Living non-toxic in America is getting harder - the cleanest option is usually hidden, more expensive, or not labeled at all. <b>I made this app to make it easier.</b> Search what you're craving, and get real brands, real recipes, real farms, and real fabrics. Eat REAL food from REAL farmers.</p>
-          <p class="sign">- The Non-Toxic Living team 🌿</p>
+          <p class="sign">- The Non-Toxic Living team</p>
         </section>
 
         <section class="good-news">
@@ -273,9 +310,12 @@
     </section>
 
     <!-- ============ SHOPPING LIST ============ -->
+
+    <!-- ============ SHOPPING LIST ============ -->
     <section class="view" id="view-list" aria-label="Shopping list">
       <div class="page-head">
-        <h2>🛒 Shopping List</h2>
+        <p class="kicker">Shopping list</p>
+        <h2>Your list.</h2>
         <p class="sub">Add ingredients from any recipe or brand. Saved on this device.</p>
       </div>
       <div id="listBody"></div>
@@ -283,19 +323,18 @@
   </main>
 
   <nav class="tabbar" aria-label="Main">
-    <button data-go="search" class="active"><span>🔎</span>Search</button>
-    <button data-go="recipes"><span>🍳</span>Recipes</button>
-    <button data-go="scan"><span>🏷️</span>Label Check</button>
-    <button data-go="local"><span>🧑‍🌾</span>Local</button>
-    <button data-go="clothing"><span>🧺</span>Clothing</button>
-    <button data-go="about"><span>💚</span>About</button>
+    <button data-go="search" class="active"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>Search</button>
+    <button data-go="recipes"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z"/><path d="M9 9h6M9 13h6"/></svg>Recipes</button>
+    <button data-go="scan"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 9v6M11 9v6M14 9v6M17 9v6"/></svg>Label check</button>
+    <button data-go="local"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.2"/></svg>Local</button>
+    <button data-go="clothing"><svg class="ic" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 4 6.5 5.5 11 8 10v10h8V10l2.5 1L20 6.5 15 4a3 3 0 0 1-6 0Z"/></svg>Clothing</button>
   </nav>
 
   <!-- Recipe / AI detail sheet -->
   <div class="sheet" id="sheet" hidden>
     <div class="sheet-backdrop" data-close></div>
-    <div class="sheet-panel" role="dialog" aria-modal="true">
-      <button class="sheet-close" data-close aria-label="Close">✕</button>
+    <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Recipe">
+      <button class="sheet-close" data-close aria-label="Close"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <div id="sheetBody"></div>
     </div>
   </div>
@@ -303,17 +342,23 @@
   <!-- Settings -->
   <div class="sheet" id="settings" hidden>
     <div class="sheet-backdrop" data-close></div>
-    <div class="sheet-panel small" role="dialog" aria-modal="true">
-      <button class="sheet-close" data-close aria-label="Close">✕</button>
-      <h2>Settings</h2>
-      <h3>✨ AI for any food (optional)</h3>
+    <div class="sheet-panel small" role="dialog" aria-modal="true" aria-label="Settings">
+      <button class="sheet-close" data-close aria-label="Close" style="margin:0 0 4px auto;top:0"><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      <p class="kicker">Settings</p>
+      <h2>Your preferences</h2>
+      <div class="diet" data-diet-bar data-diet-title="My diet"></div>
+      <h3 style="margin-top:24px">AI for any food <small class="meta">(optional)</small></h3>
       <p class="sub">The app has a built-in guide to hundreds of brands and 20 recipes. To get a clean recipe or brand list for <i>anything</i> else, add your own Anthropic API key. It's stored only on this device and sent only to Anthropic.</p>
-      <input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off">
+      <label for="apiKey" class="visually-hidden">Anthropic API key</label>
+      <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
       <div class="row">
         <button class="btn primary" id="saveKey">Save key</button>
-        <button class="btn" id="clearKey">Remove</button>
+        <button class="btn quiet" id="clearKey">Remove</button>
       </div>
       <p class="fine">Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>. Usage is billed to your Anthropic account.</p>
+      <ul class="list-links" style="margin-top:20px">
+        <li><a href="#" data-go="about"><span>About us<small>Why we built this, and our sources</small></span><svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></a></li>
+      </ul>
     </div>
   </div>
 
@@ -323,6 +368,7 @@
   <script src="js/data/recipes.js"></script>
   <script src="js/data/clothing.js"></script>
   <script src="js/data/additives.js"></script>
+  <script src="js/data/diets.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

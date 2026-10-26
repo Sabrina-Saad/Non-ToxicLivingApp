@@ -525,5 +525,232 @@ window.NTL_PRODUCTS = [
       { b: "Simmer pot", p: "Orange peel + cinnamon + cloves on the stove", score: 100, oil: "None", why: "Free and actually smells like Christmas.", site: "https://www.google.com/search?q=simmer+pot+recipe" }
     ],
     avoid: [{ b: "Bath & Body Works candles / Glade Plug-ins / Febreze", why: "Paraffin, synthetic fragrance, VOCs." }]
+  },
+
+  // ---------- More foods ----------
+  {
+    id: "canned-fish", name: "Canned Tuna, Salmon & Sardines", cat: "Protein",
+    keys: ["tuna", "canned tuna", "tuna fish", "canned salmon", "sardines", "anchovies", "canned fish", "tinned fish", "mackerel"],
+    tip: "Read what the fish is packed in. 'Vegetable oil' means soybean oil, and many water-packed tunas add 'vegetable broth' made from soy. Look for fish + salt, or fish in olive oil. Smaller fish (skipjack, sardines) carry less mercury than albacore.",
+    picks: [
+      { b: "Wild Planet", p: "Wild Skipjack Tuna", score: 94, oil: "None", why: "Pole-and-line caught, just tuna and sea salt. No water or oil added.", site: "https://www.wildplanetfoods.com" },
+      { b: "Safe Catch", p: "Elite Wild Tuna", score: 94, oil: "None", why: "Every tuna is tested for mercury. Just tuna and sea salt.", site: "https://safecatch.com" },
+      { b: "Fishwife", p: "Tinned Smoked Salmon & Sardines", score: 90, oil: "Olive oil", why: "Packed in olive oil. Responsibly sourced fish.", site: "https://eatfishwife.com" },
+      { b: "Wild Planet", p: "Wild Sardines in Extra Virgin Olive Oil", score: 92, oil: "Extra-virgin olive oil", why: "Low-mercury, high omega-3, packed in EVOO.", site: "https://www.wildplanetfoods.com" }
+    ],
+    avoid: [
+      { b: "Tuna 'in vegetable oil' (e.g. StarKist Chunk Light in Vegetable Oil)", why: "Packed in soybean oil." },
+      { b: "Chunk light tuna in water with 'vegetable broth'", why: "The broth usually contains soy and pyrophosphate. Check the label." }
+    ]
+  },
+  {
+    id: "seafood", name: "Salmon, Shrimp & Seafood", cat: "Protein",
+    keys: ["salmon", "fish", "seafood", "shrimp", "cod", "halibut", "scallops", "wild caught", "fresh fish", "frozen fish"],
+    tip: "Choose wild-caught. Farmed salmon gets its pink color from astaxanthin added to the feed, often synthetic, and has tested higher for PCBs and dioxins. Much imported farmed shrimp has been refused at the US border for banned antibiotics.",
+    picks: [
+      { b: "Vital Choice", p: "Wild Alaskan Salmon", score: 95, oil: "None", why: "Wild-caught, flash-frozen, third-party tested.", site: "https://www.vitalchoice.com" },
+      { b: "Wild Alaskan Company", p: "Wild Seafood Box", score: 93, oil: "None", why: "100% wild-caught Alaskan salmon, cod and halibut, shipped frozen.", site: "https://wildalaskancompany.com" },
+      { b: "Local fish market", p: "Wild-caught, US-caught fish", score: 92, oil: "None", why: "Ask: 'Is it wild or farmed? Where was it caught?'", local: true },
+      { b: "Any brand", p: "Wild-caught US Gulf or Pacific shrimp", score: 86, oil: "None", why: "Look for 'wild-caught' and 'Product of USA' on the bag." }
+    ],
+    avoid: [
+      { b: "Farmed Atlantic salmon", why: "Feed-added color, higher PCBs and dioxins in testing." },
+      { b: "Breaded fish sticks & popcorn shrimp", why: "Fried in soybean or canola oil before freezing." }
+    ]
+  },
+  {
+    id: "broth", name: "Bone Broth & Soup", cat: "Pantry",
+    keys: ["bone broth", "broth", "chicken broth", "beef broth", "soup", "canned soup", "chicken noodle soup", "stock"],
+    tip: "Real broth is bones, water, vegetables and salt. Condensed 'cream of' soups are thickened with modified starch and seed oil.",
+    picks: [
+      { b: "Kettle & Fire", p: "Bone Broth (beef or chicken)", score: 92, oil: "None", why: "Grass-fed beef or organic chicken bones, simmered for hours.", site: "https://www.kettleandfire.com" },
+      { b: "Bonafide Provisions", p: "Organic Bone Broth (frozen)", score: 94, oil: "None", why: "Organic, sold frozen so no preservatives are needed.", site: "https://bonafideprovisions.com" },
+      { b: "Pacific Foods", p: "Organic Bone Broth", score: 86, oil: "None", why: "Organic and easy to find in most grocery stores.", site: "https://www.pacificfoods.com" },
+      { b: "Local farm", p: "Soup bones (make your own)", score: 100, oil: "None", why: "Ask a farmer for marrow and knuckle bones. Simmer 12-24 hours.", local: true }
+    ],
+    avoid: [{ b: "Campbell's Condensed 'Cream of' soups", why: "Vegetable oil (canola, corn, cottonseed or soybean), modified starch." }]
+  },
+  {
+    id: "hot-sauce", name: "Hot Sauce & Salsa", cat: "Condiments",
+    keys: ["hot sauce", "salsa", "pico de gallo", "sriracha", "buffalo sauce", "chili sauce", "tabasco", "cholula"],
+    tip: "Classic hot sauces are just peppers, vinegar and salt. Buffalo and 'wing' sauces are where soybean oil sneaks in. Fresh salsa from the refrigerated section usually has no oil at all.",
+    picks: [
+      { b: "Tabasco", p: "Original Red Sauce", score: 96, oil: "None", why: "Three ingredients: vinegar, red pepper, salt.", site: "https://www.tabasco.com" },
+      { b: "Frank's RedHot", p: "Original Cayenne Pepper Sauce", score: 92, oil: "None", why: "Aged cayenne, vinegar, water, salt, garlic. Make your own Buffalo sauce with butter.", site: "https://www.franksredhot.com" },
+      { b: "Cholula", p: "Original Hot Sauce", score: 88, oil: "None", why: "Peppers, vinegar, salt, spices. Contains a little xanthan gum.", site: "https://www.cholula.com" },
+      { b: "Green Mountain Gringo", p: "Salsa", score: 90, oil: "None", why: "Vegetables, vinegar and spices. No oil or sugar.", site: "https://greenmountaingringo.com" }
+    ],
+    avoid: [{ b: "Bottled Buffalo & wing sauces", why: "Many add soybean or canola oil and 'butter flavor'. Check the label." }]
+  },
+  {
+    id: "bbq-sauce", name: "BBQ Sauce & Marinades", cat: "Condiments",
+    keys: ["bbq sauce", "barbecue sauce", "barbeque", "marinade", "steak sauce", "honey mustard"],
+    tip: "Most BBQ sauce is high-fructose corn syrup with tomato. Look for no HFCS and as little sugar as you can find.",
+    picks: [
+      { b: "Primal Kitchen", p: "Organic Unsweetened Classic BBQ Sauce", score: 92, oil: "None", why: "No added sugar, organic tomato base.", site: "https://www.primalkitchen.com" },
+      { b: "Stubb's", p: "Original Legendary Bar-B-Q Sauce", score: 70, oil: "None", why: "Cane sugar instead of HFCS. A decent grocery-store pick.", site: "https://www.stubbsbbq.com" }
+    ],
+    avoid: [
+      { b: "Sweet Baby Ray's", why: "High-fructose corn syrup is the first ingredient." },
+      { b: "KC Masterpiece", why: "High-fructose corn syrup, caramel color." }
+    ]
+  },
+  {
+    id: "soy-sauce", name: "Soy Sauce, Teriyaki & Asian Sauces", cat: "Condiments",
+    keys: ["soy sauce", "tamari", "coconut aminos", "teriyaki", "stir fry sauce", "asian sauce", "sushi"],
+    tip: "Traditionally brewed soy sauce is soybeans, wheat, salt and water. Cheap 'soy sauce' is hydrolyzed soy protein with corn syrup and caramel color. Coconut aminos is the soy-free, gluten-free swap.",
+    picks: [
+      { b: "Coconut Secret", p: "Coconut Aminos", score: 94, oil: "None", why: "Coconut sap and sea salt. Soy-free and gluten-free.", site: "https://www.coconutsecret.com" },
+      { b: "San-J", p: "Organic Tamari", score: 90, oil: "None", why: "Brewed, gluten-free soy sauce.", site: "https://san-j.com" },
+      { b: "Bragg", p: "Organic Coconut Aminos", score: 92, oil: "None", why: "Soy-free soy sauce swap.", site: "https://www.bragg.com" },
+      { b: "Primal Kitchen", p: "No-Soy Teriyaki Sauce", score: 86, oil: "Avocado oil", why: "Coconut aminos base, no refined sugar.", site: "https://www.primalkitchen.com" }
+    ],
+    avoid: [{ b: "La Choy Soy Sauce", why: "Hydrolyzed soy protein, corn syrup, caramel color." }]
+  },
+  {
+    id: "pickles", name: "Pickles, Sauerkraut & Fermented Veggies", cat: "Condiments",
+    keys: ["pickles", "pickle", "dill pickles", "sauerkraut", "kimchi", "fermented", "relish"],
+    tip: "Naturally fermented pickles and kraut live in the refrigerated aisle and are full of probiotics. Shelf-stable pickles can contain Yellow 5 and polysorbate 80.",
+    picks: [
+      { b: "Bubbies", p: "Kosher Dill Pickles", score: 96, oil: "None", why: "Naturally fermented in salt brine. No vinegar, no dyes.", site: "https://www.bubbies.com" },
+      { b: "Grillo's Pickles", p: "Italian Dill Spears", score: 92, oil: "None", why: "Cucumbers, vinegar, garlic, dill, salt. Refrigerated.", site: "https://grillospickles.com" },
+      { b: "Wildbrine", p: "Raw Sauerkraut", score: 94, oil: "None", why: "Raw and fermented, with live cultures.", site: "https://wildbrine.com" },
+      { b: "Cleveland Kitchen", p: "Fermented Kraut", score: 90, oil: "None", why: "Fermented cabbage, refrigerated.", site: "https://clevelandkitchen.com" }
+    ],
+    avoid: [{ b: "Vlasic (some varieties)", why: "Yellow 5 and polysorbate 80 in some pickles. Check the label." }]
+  },
+  {
+    id: "jam", name: "Jam, Jelly & Fruit Spread", cat: "Pantry",
+    keys: ["jam", "jelly", "fruit spread", "preserves", "grape jelly", "strawberry jam", "pb&j"],
+    tip: "Grape jelly is often HFCS with a little juice. Pick spreads where fruit is the first ingredient.",
+    picks: [
+      { b: "Crofter's", p: "Organic Just Fruit Spread", score: 92, oil: "None", why: "Organic fruit, sweetened with fruit juice.", site: "https://www.croftersorganic.com" },
+      { b: "St. Dalfour", p: "Fruit Spread", score: 88, oil: "None", why: "Fruit and grape juice concentrate. No cane sugar." },
+      { b: "Bonne Maman", p: "Preserves", score: 76, oil: "None", why: "Simple ingredients. Real sugar, but no corn syrup." }
+    ],
+    avoid: [{ b: "Smucker's Concord Grape Jelly", why: "High-fructose corn syrup and corn syrup." }]
+  },
+  {
+    id: "coffee", name: "Coffee", cat: "Drinks",
+    keys: ["coffee", "coffee beans", "ground coffee", "espresso", "cold brew", "k cups", "coffee pods", "decaf"],
+    tip: "Choose organic, and whole beans if you can. If you drink decaf, look for Swiss Water or CO2 process instead of chemical solvents.",
+    picks: [
+      { b: "Purity Coffee", p: "Organic Coffee", score: 94, oil: "None", why: "Organic. Tested for mold toxins and pesticides.", site: "https://puritycoffee.com" },
+      { b: "Kicking Horse", p: "Organic Whole Bean Coffee", score: 88, oil: "None", why: "Organic and fair trade. Easy to find.", site: "https://www.kickinghorsecoffee.com" },
+      { b: "Local roaster", p: "Fresh-roasted organic beans", score: 90, oil: "None", why: "Ask for organic and the roast date.", local: true }
+    ],
+    avoid: [
+      { b: "Artificially flavored coffees", why: "Lab-made flavorings sprayed on the beans." },
+      { b: "Solvent-processed decaf", why: "Some decaf uses methylene chloride. Look for Swiss Water Process." }
+    ]
+  },
+  {
+    id: "tea", name: "Tea", cat: "Drinks",
+    keys: ["tea", "green tea", "herbal tea", "chamomile", "matcha", "iced tea", "tea bags"],
+    tip: "Skip shiny 'silken' pyramid bags made of nylon or PET plastic. A 2019 study found one plastic tea bag released billions of microplastic particles into the cup. Loose-leaf is cleanest.",
+    picks: [
+      { b: "Loose-leaf", p: "Organic loose tea + stainless steel infuser", score: 98, oil: "None", why: "No bag at all." },
+      { b: "Traditional Medicinals", p: "Organic Herbal Teas", score: 90, oil: "None", why: "Certified organic herbs.", site: "https://www.traditionalmedicinals.com" },
+      { b: "Pukka", p: "Organic Herbal Teas", score: 88, oil: "None", why: "Certified organic." }
+    ],
+    avoid: [{ b: "Plastic 'silken' pyramid tea bags", why: "Release microplastics into hot water." }]
+  },
+  {
+    id: "kombucha", name: "Kombucha & Gut-Health Drinks", cat: "Drinks",
+    keys: ["kombucha", "probiotic drink", "kefir water", "gut health", "fermented drink"],
+    tip: "Real kombucha is tea, sugar and a culture, and most of the sugar is eaten during fermentation. Look for 'raw' and organic, in glass.",
+    picks: [
+      { b: "Health-Ade", p: "Kombucha", score: 90, oil: "None", why: "Organic, small-batch, glass bottles.", site: "https://health-ade.com" },
+      { b: "GT's", p: "Synergy Raw Kombucha", score: 90, oil: "None", why: "Raw, organic, glass bottles.", site: "https://gtslivingfoods.com" }
+    ],
+    avoid: [{ b: "'Prebiotic' and 'gut-health' sodas with sucralose", why: "Artificial sweeteners in a health halo. Check the label." }]
+  },
+  {
+    id: "electrolytes", name: "Electrolytes & Sports Drinks", cat: "Drinks",
+    keys: ["electrolytes", "sports drink", "gatorade", "powerade", "hydration", "coconut water", "body armor", "pedialyte"],
+    tip: "Most sports drinks are sugar water with dyes. For real hydration, pick an unsweetened or stevia-sweetened electrolyte mix, or plain coconut water.",
+    picks: [
+      { b: "Harmless Harvest", p: "Organic Coconut Water", score: 94, oil: "None", why: "Just organic coconut water. Nothing added.", site: "https://harmlessharvest.com" },
+      { b: "LMNT", p: "Electrolyte Drink Mix", score: 86, oil: "None", why: "Sodium, potassium, magnesium. No sugar or dyes. Contains stevia.", site: "https://drinklmnt.com" },
+      { b: "Redmond", p: "Re-Lyte Electrolyte Mix", score: 86, oil: "None", why: "Made with Redmond Real Salt. No dyes.", site: "https://redmondlife.com" },
+      { b: "Ultima", p: "Replenisher Electrolyte Mix", score: 84, oil: "None", why: "No sugar or dyes. Sweetened with stevia.", site: "https://www.ultimareplenisher.com" }
+    ],
+    avoid: [
+      { b: "Gatorade", why: "Sugar plus Red 40, Yellow 5 or Blue 1 in many flavors." },
+      { b: "Powerade", why: "High-fructose corn syrup and synthetic dyes." }
+    ]
+  },
+  {
+    id: "kids-drinks", name: "Juice & Kids' Drinks", cat: "Drinks",
+    keys: ["juice", "kids drinks", "juice box", "apple juice", "orange juice", "sunny d", "lemonade", "fruit punch", "capri sun"],
+    tip: "Look for 100% juice with no added sugar or dyes, and water it down for kids. 'Juice drinks' and 'punch' are usually corn syrup and dye.",
+    picks: [
+      { b: "Lakewood", p: "Organic Pure Juice", score: 90, oil: "None", why: "100% organic juice in glass bottles. Not from concentrate.", site: "https://www.lakewoodjuices.com" },
+      { b: "Honest Kids", p: "Organic Juice Drinks", score: 80, oil: "None", why: "Organic, sweetened only with juice." },
+      { b: "Homemade", p: "Water + a splash of 100% juice", score: 98, oil: "None", why: "Half the sugar, same flavor kids like." }
+    ],
+    avoid: [
+      { b: "SunnyD", why: "Corn syrup, canola oil, Yellow 5 and Yellow 6." },
+      { b: "Hawaiian Punch", why: "High-fructose corn syrup and Red 40." }
+    ]
+  },
+  {
+    id: "frozen-treats", name: "Popsicles & Frozen Treats", cat: "Frozen",
+    keys: ["popsicle", "popsicles", "ice pops", "freezer pops", "frozen treats", "fruit bars", "otter pops"],
+    tip: "Freezer pops and rocket pops are mostly sugar and dye. Fruit-based pops, or blending fruit and freezing it yourself, are the swap.",
+    picks: [
+      { b: "GoodPop", p: "Organic Fruit Pops", score: 90, oil: "None", why: "Organic, real fruit, no artificial dyes.", site: "https://goodpop.com" },
+      { b: "Chloe's", p: "Fruit Pops", score: 86, oil: "None", why: "Fruit, water and a little cane sugar." },
+      { b: "Homemade", p: "Blended fruit + yogurt in molds", score: 100, oil: "None", why: "Blend, pour, freeze. Done." }
+    ],
+    avoid: [{ b: "Popsicle Firecracker / Bomb Pop / Otter Pops", why: "Red 40, Blue 1 and other dyes, corn syrup." }]
+  },
+  {
+    id: "flour", name: "Flour & Baking Mixes", cat: "Pantry",
+    keys: ["flour", "all purpose flour", "almond flour", "cassava flour", "pancake mix", "waffle mix", "baking mix", "bisquick", "cake mix", "baking"],
+    tip: "Choose unbleached, unbromated flour (potassium bromate is banned in the EU). Boxed mixes often add seed oil to the dry mix.",
+    picks: [
+      { b: "Jovial", p: "Organic Einkorn All-Purpose Flour", score: 94, oil: "None", why: "Ancient wheat many people digest more easily.", site: "https://jovialfoods.com" },
+      { b: "King Arthur", p: "Organic Unbleached All-Purpose Flour", score: 90, oil: "None", why: "Unbleached and never bromated.", site: "https://www.kingarthurbaking.com" },
+      { b: "Bob's Red Mill", p: "Super-Fine Almond Flour", score: 92, oil: "None", why: "Grain-free and gluten-free baking.", site: "https://www.bobsredmill.com" },
+      { b: "Otto's Naturals", p: "Cassava Flour", score: 92, oil: "None", why: "Grain-free, gluten-free, nut-free.", site: "https://www.ottosnaturals.com" },
+      { b: "Simple Mills", p: "Almond Flour Pancake & Waffle Mix", score: 88, oil: "None", why: "Almond flour, arrowroot, coconut sugar. No oil in the mix.", site: "https://www.simplemills.com" }
+    ],
+    avoid: [
+      { b: "Bisquick & most boxed baking mixes", why: "Refined vegetable oil blended into the dry mix. Check the label." },
+      { b: "Bromated or bleached flour", why: "Potassium bromate: IARC 'possible carcinogen', banned in the EU." }
+    ]
+  },
+  {
+    id: "canned-goods", name: "Canned Tomatoes & Beans", cat: "Pantry",
+    keys: ["canned tomatoes", "tomato paste", "crushed tomatoes", "canned beans", "black beans", "chickpeas", "beans", "tomatoes", "passata"],
+    tip: "Acidic tomatoes pull more BPA out of can linings. Choose tomatoes in glass, and beans in BPA-free cans (or cook dried beans).",
+    picks: [
+      { b: "Jovial", p: "Organic Tomatoes (glass jars)", score: 94, oil: "None", why: "Italian tomatoes in glass, so no can lining at all.", site: "https://jovialfoods.com" },
+      { b: "Mutti", p: "Tomato Passata & Polpa", score: 88, oil: "None", why: "Italian tomatoes, simple ingredients.", site: "https://mutti-parma.com" },
+      { b: "Eden Foods", p: "Organic Beans", score: 90, oil: "None", why: "Organic, cooked with kombu, BPA-free lined cans.", site: "https://www.edenfoods.com" },
+      { b: "Any brand", p: "Organic dried beans", score: 96, oil: "None", why: "Soak overnight, then simmer or pressure-cook." }
+    ],
+    avoid: [{ b: "Cans not labeled BPA-free", why: "Linings can leach BPA, especially with tomatoes." }]
+  },
+  {
+    id: "baby-food", name: "Baby & Toddler Food", cat: "Baby",
+    keys: ["baby food", "toddler snacks", "baby puffs", "pouches", "teething wafers", "baby", "toddler", "puffs"],
+    tip: "A 2021 US House report found toxic heavy metals in major baby food brands, highest in rice-based snacks. Rotate foods, limit rice puffs, and choose brands that publish their test results.",
+    picks: [
+      { b: "Homemade", p: "Steamed and mashed veggies, fruit and meat", score: 100, oil: "None", why: "You know exactly what's in it." },
+      { b: "Serenity Kids", p: "Savory Pouches", score: 90, oil: "None", why: "Pasture-raised meat with organic veggies. Low sugar.", site: "https://www.myserenitykids.com" }
+    ],
+    avoid: [{ b: "Rice-based puffs & teething wafers", why: "Highest heavy-metal levels in the 2021 congressional report." }]
+  },
+  {
+    id: "gum", name: "Gum & Mints", cat: "Snacks",
+    keys: ["gum", "chewing gum", "mints", "breath mints", "trident", "orbit", "extra gum"],
+    tip: "Conventional gum base is synthetic plastic and rubber, usually sweetened with aspartame and preserved with BHT. Chicle is the original natural gum base.",
+    picks: [
+      { b: "Simply Gum", p: "Natural Chewing Gum", score: 92, oil: "None", why: "Chicle base. No synthetic ingredients.", site: "https://simplygum.com" },
+      { b: "Glee Gum", p: "Natural Chewing Gum", score: 88, oil: "None", why: "Chicle base, no artificial sweeteners or dyes.", site: "https://www.gleegum.com" }
+    ],
+    avoid: [{ b: "Trident / Orbit / Extra", why: "Synthetic gum base, aspartame, BHT." }]
   }
 ];
