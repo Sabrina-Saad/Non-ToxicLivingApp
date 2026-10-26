@@ -1,4 +1,12 @@
 /* Non-Toxic Living - mint, clean-label look */
+/* Fonts ship with the app (SIL Open Font License) so they work offline and in the App Store build. */
+@font-face { font-family: "Figtree"; font-style: normal; font-weight: 400; font-display: swap; src: url("../fonts/figtree-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-style: normal; font-weight: 500; font-display: swap; src: url("../fonts/figtree-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/figtree-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Figtree"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/figtree-latin-700-normal.woff2") format("woff2"); }
+@font-face { font-family: "Instrument Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url("../fonts/instrument-sans-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Instrument Sans"; font-style: normal; font-weight: 600; font-display: swap; src: url("../fonts/instrument-sans-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Instrument Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url("../fonts/instrument-sans-latin-700-normal.woff2") format("woff2"); }
 :root {
   --bg: #F5FAF7;
   --surface: #FFFFFF;
@@ -108,6 +116,27 @@ main { max-width: 640px; margin: 0 auto; padding: 0 20px; }
 }
 .chip:hover { border-color: var(--ink-2); }
 .chip.active { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+
+/* home: daily swap + shortcut tiles */
+.swap-card { margin: 22px 0 0; background: var(--mint); border-radius: 24px; padding: 20px; }
+.swap-card .swap-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+.swap-card .swap-head .kicker { margin: 0; color: var(--ink); }
+.swap-card .swap-head a { font-size: .85rem; }
+.swap-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.swap-pair > div { border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.swap-pair small { font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.swap-pair b { font-family: var(--display); font-weight: 600; font-size: .98rem; line-height: 1.2; }
+.swap-pair span { font-size: .8rem; line-height: 1.4; }
+.swap-skip { background: var(--surface); }
+.swap-skip small { color: var(--clay); }
+.swap-skip span { color: var(--muted); }
+.swap-choose { background: var(--primary); color: var(--on-primary); }
+.swap-choose small { color: var(--on-primary-2); opacity: .9; }
+.swap-choose span { opacity: .85; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0 0; }
+.tile { text-decoration: none; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.tile b { font-family: var(--display); font-weight: 600; }
+.tile span { font-size: .8rem; font-weight: 400; color: var(--muted); }
 
 /* diet notch */
 .diet { margin: 16px 0 4px; }
@@ -321,6 +350,7 @@ textarea { resize: vertical; }
 .big-score[data-grade="s-bad"] b, .big-score[data-grade="s-bad"] strong { color: var(--clay); }
 :root[data-theme="dark"] .big-score[data-grade="s-ex"] b, :root[data-theme="dark"] .big-score[data-grade="s-ex"] strong { color: var(--ink); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .big-score[data-grade="s-ex"] b, :root:not([data-theme="light"]) .big-score[data-grade="s-ex"] strong { color: var(--ink); } }
+.score-note { margin: 12px 0 0; font-size: .88rem; font-weight: 600; color: var(--clay-ink); background: var(--clay-bg); border-radius: 12px; padding: 8px 12px; }
 .bar { height: 6px; border-radius: 3px; background: var(--mist); overflow: hidden; margin-top: 12px; }
 .bar i { display: block; height: 100%; background: currentColor; }
 .verdict { border-radius: 16px; padding: 12px 14px; margin: 12px 0; font-size: .92rem; }

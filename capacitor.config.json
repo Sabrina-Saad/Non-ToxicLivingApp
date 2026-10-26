@@ -1,0 +1,12 @@
+{
+  "appId": "com.nontoxicliving.app",
+  "appName": "Non-Toxic Living",
+  "webDir": "www",
+  "backgroundColor": "#F5FAF7",
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "backgroundColor": "#F5FAF7"
+  }
+}

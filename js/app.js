@@ -242,8 +242,25 @@
     renderResults(query);
   }
 
+  // Home screen: one "skip this, choose that" swap, changing daily.
+  function renderDailySwap() {
+    const pool = PRODUCTS.filter((p) => !NON_FOOD.has(p.cat) && (p.avoid || []).length && (p.picks || []).some((k) => k.site));
+    if (!pool.length) return;
+    const p = pool[Math.floor(Date.now() / 86400000) % pool.length];
+    const pick = p.picks.filter((k) => k.site).sort((x, y) => (y.score || 0) - (x.score || 0))[0];
+    const skip = p.avoid[0];
+    $("#dailySwap").innerHTML = `<section class="swap-card" aria-label="Today's swap">
+      <div class="swap-head"><p class="kicker">Today's swap · ${esc(p.name)}</p><a href="#" data-search="${esc(p.keys && p.keys[0] ? p.keys[0] : p.name)}">See all</a></div>
+      <div class="swap-pair">
+        <div class="swap-skip"><small>Skip</small><b>${esc(skip.b)}</b><span>${esc(skip.why)}</span></div>
+        <div class="swap-choose"><small>Choose · ${esc(pick.score ?? "")}</small><b>${esc(pick.b)} ${esc(pick.p)}</b><span>${esc(pick.why)}</span></div>
+      </div>
+    </section>`;
+  }
+
   function renderResults(query) {
     const out = $("#results");
+    $("#homeExtras").hidden = !!query.trim();
     if (!query.trim()) { out.innerHTML = ""; return; }
     const diets = activeDiets();
 
@@ -562,6 +579,61 @@
     return { hits, score: Math.max(0, Math.min(100, score)) };
   }
 
+  /* Added sugar: judged on grams per 100g when Open Food Facts has them, otherwise on
+   * where sugar sits in the ingredient list (ingredients are listed by weight).
+   * Honey, maple, coconut sugar and dates count a little less than refined sugar. */
+  const SUGARS = [
+    ["high[-\\s]*fructose corn syrup|glucose[-\\s]*fructose", "high-fructose corn syrup", true],
+    ["corn syrup( solids)?", "corn syrup", true],
+    ["coconut (palm )?sugar|coconut nectar", "coconut sugar", false],
+    ["maple syrup|maple sugar", "maple syrup", false],
+    ["date syrup|date sugar|dates", "dates", false],
+    ["honey", "honey", false],
+    ["(brown |powdered |invert |cane |beet |turbinado |raw |organic )?sugar|sucrose|evaporated cane juice|cane juice", "sugar", true],
+    ["dextrose|glucose( syrup)?|fructose|maltose", "dextrose or glucose", true],
+    ["(brown )?rice syrup|tapioca syrup|malt syrup|barley malt", "rice or malt syrup", true],
+    ["agave( nectar| syrup)?", "agave", true],
+    ["molasses", "molasses", true],
+    ["fruit juice concentrate|(apple|grape|pear) juice concentrate", "fruit juice concentrate", true]
+  ].map(([re, name, refined]) => ({ rx: new RegExp("\\b(?:" + re + ")\\b", "i"), name, refined }));
+
+  function sugarCheck(text, product) {
+    let lower = " " + String(text || "").toLowerCase().replace(/\b(sugar[- ]free|no (added )?sugars?|zero sugar|unsweetened)\b/g, (m) => " ".repeat(m.length)) + " ";
+    const found = [];
+    for (const s of SUGARS) {
+      const m = lower.match(s.rx);
+      if (!m) continue;
+      found.push({ ...s, at: m.index });
+      // Blank it out so "high fructose corn syrup" isn't also counted as "corn syrup" and "fructose".
+      lower = lower.replace(new RegExp(s.rx.source, "gi"), (x) => " ".repeat(x.length));
+    }
+    const grams = Number(product && product.nutriments && product.nutriments.sugars_100g);
+    const hasGrams = product && product.nutriments && product.nutriments.sugars_100g != null && Number.isFinite(grams);
+    if (!found.length && !(hasGrams && grams >= 10)) return { penalty: 0, found, grams: hasGrams ? grams : null };
+
+    found.sort((a, b) => a.at - b.at);
+    const first = found[0];
+    // Position of the first sugar among the top-level ingredients (commas inside "(...)" don't count).
+    const commasBefore = (s, end) => { let d = 0, n = 0; for (let i = 0; i < end; i++) { const c = s[i]; if (c === "(" || c === "[") d++; else if ((c === ")" || c === "]") && d) d--; else if (c === "," && !d) n++; } return n; };
+    const idx = first ? commasBefore(lower, first.at) : -1;
+    const total = commasBefore(lower, lower.length) + 1;
+    let penalty, reason;
+    if (hasGrams) {
+      const g = Math.round(grams * 10) / 10;
+      if (grams >= 45) { penalty = 40; reason = `${g}g of sugar per 100g, almost half the product`; }
+      else if (grams >= 22.5) { penalty = 25; reason = `${g}g of sugar per 100g, a high-sugar food`; }
+      else if (grams >= 10) { penalty = 12; reason = `${g}g of sugar per 100g`; }
+      else if (grams >= 5) { penalty = 5; reason = `${g}g of sugar per 100g, a small amount`; }
+      else { penalty = 0; reason = `only ${g}g of sugar per 100g`; }
+    } else if (idx === 0) { penalty = 40; reason = `${first.name} is the #1 ingredient`; }
+    else if (idx < Math.max(3, total / 3)) { penalty = 25; reason = `${first.name} is one of the first ingredients`; }
+    else if (idx < (total * 2) / 3) { penalty = 12; reason = `${first.name} is in the middle of the ingredient list`; }
+    else { penalty = 5; reason = `${first.name} is near the end of the list, so it's a small amount`; }
+    if (penalty && found.length && found.every((f) => !f.refined)) penalty = Math.round(penalty * 0.75);
+    if (found.length >= 3) { penalty += 5; reason += `. It also uses ${found.length} kinds of sugar (${found.map((f) => f.name).join(", ")})`; }
+    return { penalty, reason, found, grams: hasGrams ? grams : null, unrefined: found.length && found.every((f) => !f.refined) };
+  }
+
   // Each selected diet vs a label: ingredient words, Open Food Facts allergen/analysis tags and (keto) net carbs.
   function labelDiet(text, product) {
     const nutr = (product && product.nutriments) || {};
@@ -590,7 +662,8 @@
     lastAnalysis = input;
     const { text, product } = input;
     const { hits, score: base } = analyze(text);
-    let score = base;
+    const sugar = sugarCheck(text, product);
+    let score = Math.max(0, base - sugar.penalty);
     const nova = product && product.nova_group;
     if (nova === 4) score = Math.max(0, score - 10);
     const g = grade(score);
@@ -608,9 +681,13 @@
       </div>`;
     }
 
+    const sugarHtml = sugar.penalty
+      ? `<div class="verdict ${sugar.penalty >= 25 ? "bad" : "meh"}"><b>Sugar · rated ${sugar.penalty} points lower</b>${esc(sugar.reason[0].toUpperCase() + sugar.reason.slice(1))}.${sugar.unrefined ? " Less refined sweeteners, so we went a little easier." : ""}</div>`
+      : `<div class="verdict good"><b>Sugar</b>${sugar.grams != null ? `${esc(sugar.reason[0].toUpperCase() + sugar.reason.slice(1))}. ` : ""}No added sugar lowered this score.</div>`;
+    const flagCount = hits.length + (sugar.penalty >= 12 ? 1 : 0);
     const diet = labelDiet(text, product);
     const dietHtml = diet.length ? `<div class="diet-panel" style="margin-top:0">${diet.map(({ d, reasons }) => reasons.length
-      ? `<div class="diet-row no"><b>Not ${esc(d.label.toLowerCase())}</b>${esc(reasons.join("; "))}.</div>`
+      ? `<div class="diet-row no"><b>Not ${esc(d.label.toLowerCase())}</b>${esc(reasons.join("; ").replace(/^./, (c) => c.toUpperCase()))}.</div>`
       : `<div class="diet-row fits"><b>Looks ${esc(d.label.toLowerCase())}</b>${d.id === "gluten-free" ? "No gluten ingredients found. For celiac, look for a certified gluten-free label." : d.keto && !(product && product.nutriments && product.nutriments.carbohydrates_100g != null) ? "No sugars or starches found in the ingredients. Check the carbs on the label." : `Nothing in the ingredients breaks ${esc(d.label.toLowerCase())}.`}</div>`).join("")}</div>` : "";
 
     const sevLabel = { high: "High", moderate: "Moderate", low: "Low" };
@@ -619,11 +696,13 @@
     $("#scanResult").innerHTML = `
       <div class="card result">
         ${product ? `<div class="result-head">${product.image_front_small_url ? `<img src="${esc(product.image_front_small_url)}" alt="">` : ""}<div><p class="kicker" style="margin:0 0 2px">${esc(product.brands || "Scanned product")}</p><h3>${esc(product.product_name || "Unknown product")}</h3></div></div>` : `<p class="kicker">Your ingredient list</p>`}
-        <div class="big-score" data-grade="${g.cls}"><b>${score}</b><span>out of 100<strong>${g.label}${hits.length ? ` · ${hits.length} red flag${hits.length > 1 ? "s" : ""}` : ""}</strong></span></div>
+        <div class="big-score" data-grade="${g.cls}"><b>${score}</b><span>out of 100<strong>${g.label}${flagCount ? ` · ${flagCount} red flag${flagCount > 1 ? "s" : ""}` : ""}</strong></span></div>
         <div class="bar" style="color:var(--${g.cls})"><i style="width:${Math.max(2, score)}%"></i></div>
-        ${nova ? `<p class="meta" style="margin-top:10px">NOVA processing group <b>${nova}</b>${nova === 4 ? " (ultra-processed, minus 10)" : ""}</p>` : ""}
+        ${sugar.penalty ? `<p class="score-note">Rated ${sugar.penalty} points lower because of sugar.</p>` : ""}
+        ${nova ? `<p class="meta" style="margin-top:10px">NOVA processing group <b>${nova}</b>${nova === 4 ? " (ultra-processed, rated 10 points lower)" : ""}</p>` : ""}
       </div>
       ${dietHtml}
+      ${sugarHtml}
       ${seedHtml}
       ${hits.length ? `<h3 class="sec-title" style="margin-top:22px">What we flagged</h3><div class="card" style="padding-top:2px;padding-bottom:2px">${Object.entries(groups).map(([type, list]) => `
           <h4>${esc(type)}</h4>
@@ -1006,9 +1085,11 @@ Standards you apply:
 
   /* ---------------- init ---------------- */
   function init() {
-    const quick = ["mayonnaise", "cookies", "grass-fed beef", "potato chips", "ice cream", "peanut butter", "canned tuna", "hot sauce", "coffee", "maple syrup", "toothpaste", "wool blanket"];
+    const quick = ["mayonnaise", "cookies", "grass-fed beef", "canned tuna", "toothpaste", "wool blanket"];
     $("#quickChips").innerHTML = quick.map((q) => `<button class="chip" data-search="${esc(q)}">${esc(q[0].toUpperCase() + q.slice(1))}</button>`).join("");
     renderDietBars();
+    renderDailySwap();
+    $("#q").addEventListener("input", (e) => { if (!e.target.value.trim()) renderResults(""); });
 
     $("#searchForm").addEventListener("submit", (e) => { e.preventDefault(); $("#q").blur(); runSearch($("#q").value); });
     $("#recipeFilter").addEventListener("input", (e) => renderRecipeGrid(e.target.value));

@@ -6,7 +6,7 @@ Non-Toxic Living is an app for people who eat clean, avoid seed oils and synthet
 
 - **Clean brands to buy.** Each brand gets a 0–100 score (Excellent / Good / Poor / Bad), the oil it uses, and links to Amazon, Thrive Market, Target, Walmart, Whole Foods and nearby stores. Each category also lists the common brands to skip. When nothing seed-oil-free exists, it shows the "least bad" option and explains why.
 - **Clean recipes.** 20 recipes, including cookies, rice crispy treats, brownies, pizza, tacos, chicken tenders, smash burgers with tallow fries, Greek-yogurt ice cream and gummy bears. Each one has exact ingredients and a clean brand for every item, with buy links. You also get easy numbered steps, a servings scaler, nutrition per serving (calories, **protein**, carbs, fat, fiber, sugar), and swaps (vegetarian, vegan, dairy-free, gluten-free, higher-protein…).
-- **Label Check.** Scan a barcode with your phone camera (works on iPhone and Android) or type the number. It looks the product up in [Open Food Facts](https://world.openfoodfacts.org), then Open Beauty Facts for toothpaste, deodorant and the like. You can also paste any ingredient list. The app flags seed oils, synthetic dyes, preservatives, artificial sweeteners and emulsifiers, notes how the EU treats each one, and says how much of a seed oil is in the product based on where it sits in the list. Then it suggests a cleaner alternative.
+- **Label Check.** Scan a barcode with your phone camera (works on iPhone and Android) or type the number. It looks the product up in [Open Food Facts](https://world.openfoodfacts.org), then Open Beauty Facts for toothpaste, deodorant and the like. You can also paste any ingredient list. The app flags seed oils, synthetic dyes, preservatives, artificial sweeteners and emulsifiers, notes how the EU treats each one, and says how much of a seed oil is in the product based on where it sits in the list. Added sugar lowers the score, and the result says exactly how many points it cost and why ("Sugar is the #1 ingredient", or grams per 100g when Open Food Facts has them). Then it suggests a cleaner alternative.
 - **Shop Local.** Enter a ZIP code or use your location to find farmers markets, farm stands, butchers and health food stores near you (from OpenStreetMap). There are also one-tap map searches for grass-fed beef farms, raw milk, pasture-raised eggs, CSAs, U-pick and local honey. It links trusted directories (USDA Local Food Directories, LocalHarvest, Eatwild, American Grassfed Association, Real Milk Finder) and has a guide to buying 100% US grass-fed beef straight from a farmer.
 - **Clothing & Home.** 100% cotton, wool, linen and silk for t-shirts, jeans, underwear, socks, activewear, pajamas, sheets, blankets, towels, mattresses and baby clothes. Lines that blend in synthetics are flagged honestly. Includes a fiber cheat sheet.
 - **Diet filters.** Pick gluten-free, vegetarian, vegan, dairy-free, pescatarian, keto or paleo under the search bar, on Recipes, on Label Check or in Settings (one choice applies everywhere). Recipes are sorted into "fits", "works with a swap" and hidden. Brands are tagged when we can tell they fit or don't. Scanned products are checked against your diet using the ingredients, Open Food Facts allergen tags and, for keto, net carbs.
@@ -26,6 +26,27 @@ python3 -m http.server 8000
 ```
 
 To put it online for free: on GitHub go to **Settings → Pages**, then set **Source: Deploy from a branch** and pick this branch with `/ (root)`.
+
+## Build the phone apps (App Store & Google Play)
+
+The iPhone and Android apps are wrapped with [Capacitor](https://capacitorjs.com). The `ios/` and `android/` folders are the native projects.
+
+```bash
+npm install
+npm run ios       # copies the web app into the iOS project and opens Xcode (Mac only)
+npm run android   # same for Android Studio
+```
+
+After you change anything in `index.html`, `css/` or `js/`, run `npm run sync` to copy it into both apps.
+
+Before you submit:
+
+1. **App ID.** `capacitor.config.json` uses `com.nontoxicliving.app`. Change it to a reverse-domain name you own *before your first upload*. It also needs changing in Xcode (Signing & Capabilities, Bundle Identifier) and in `android/app/build.gradle` (`applicationId`).
+2. **Signing.** In Xcode, pick your Apple Developer team under Signing & Capabilities. For Android, create an upload key in Android Studio (Build, Generate Signed Bundle).
+3. **Permissions.** The camera prompt (barcode scanning) and location prompt (Shop Local) are already set up, with their messages, in `ios/App/App/Info.plist` and `android/app/src/main/AndroidManifest.xml`.
+4. **Icons and splash screens** are generated from `assets/` with `npx capacitor-assets generate`.
+
+The fonts (Instrument Sans and Figtree, SIL Open Font License) ship inside the app in `fonts/`, so nothing loads from Google.
 
 ## Edit the content
 
